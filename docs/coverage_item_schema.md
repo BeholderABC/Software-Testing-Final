@@ -1,6 +1,6 @@
 # Coverage Item Schema
 
-The Coverage Item Schema is as following
+The Coverage Item Schema is as following, type of constraint is in constraint schema.
 '''json
 {
   "coverages": [
@@ -77,3 +77,10 @@ The Coverage Item Schema is as following
   ]
 }
 '
+
+ For unknown constraint, there's a fallback coverage_item: 
+{
+    "description": f"unknown constraint type: {ctype}, manual intervention needed",
+    "constraint": f"{c}",
+    "type": "fallback"
+}

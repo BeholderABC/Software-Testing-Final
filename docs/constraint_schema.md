@@ -69,3 +69,4 @@
   "operator": "<=",
   "target": "stock"
 }
+
