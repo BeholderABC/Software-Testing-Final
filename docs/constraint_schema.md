@@ -19,7 +19,7 @@
 
 {
   "field": "password",
-  "type": "character_set",
+  "type": "charset",
   "required": [
     "uppercase",
     "lowercase",
@@ -34,9 +34,38 @@
   "type": "required"
 }
 
-## positive
+## existence
 
 {
-  "field": "amount",
-  "type": "positive"
+  "field": "ID",
+  "type": "existence"
+}
+
+## enum
+
+{
+  "field": "status",
+  "type": "enum",
+  "allowed": [
+    "pending",
+    "completed",
+    "cancelled"
+  ]
+}
+
+## numeric_range
+
+{
+  "field": "price",
+  "type": "numeric_range",
+  "min": 1
+}
+
+## relational
+
+{
+  "field": "quantity",
+  "type": "relational",
+  "operator": "<=",
+  "target": "stock"
 }

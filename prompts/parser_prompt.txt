@@ -15,7 +15,7 @@ Rules:
 - Use concise descriptions
 - Preserve all important constraints
 - Constraints should be structured whenever possible
-- Split independent requirements into separate requirement objects.
+- Split independent requirements into separate requirement objects, but keep the same requirement in one requirement object.
 
 Output Format:
 {
@@ -49,7 +49,7 @@ For field constraint, there are examples:
 }
 {
   "field": "password",
-  "type": "character_set",
+  "type": "charset",
   "required": [
     "uppercase",
     "lowercase",
@@ -61,8 +61,28 @@ For field constraint, there are examples:
   "type": "required"
 }
 {
-  "field": "amount",
-  "type": "positive"
+  "field": "ID",
+  "type": "existence"
+}
+{
+  "field": "status",
+  "type": "enum",
+  "allowed": [
+    "pending",
+    "completed",
+    "cancelled"
+  ]
+}
+{
+  "field": "price",
+  "type": "numeric_range",
+  "min": 1
+}
+{
+  "field": "quantity",
+  "type": "relational",
+  "operator": "<=",
+  "target": "stock"
 }
 
-Ensure that different requirements are split into different JSON Requirements, and field condition and expected behavior is consistent with constraints.
+Ensure that different requirements are split into different JSON Requirement, and Field condition and Expected Behavior is consistent with constraints.
