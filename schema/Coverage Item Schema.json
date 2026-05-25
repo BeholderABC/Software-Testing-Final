@@ -1,0 +1,24 @@
+{
+  "coverage_items": [
+    {
+      "id": "COV-001",
+      "description": "Valid password length",
+      "type": "valid"
+    },
+    {
+      "id": "COV-002",
+      "description": "Password shorter than minimum length",
+      "type": "boundary"
+    },
+    {
+      "id": "COV-003",
+      "description": "Password longer than maximum length",
+      "type": "boundary"
+    },
+    {
+      "id": "COV-004",
+      "description": "Empty password",
+      "type": "invalid"
+    }
+  ]
+}

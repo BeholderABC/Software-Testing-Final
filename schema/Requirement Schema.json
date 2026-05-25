@@ -1,0 +1,31 @@
+{
+  "requirement_id": "REQ-001",
+  "raw_requirement": "User password must be between 8 and 20 characters.",
+
+  "feature": "Password Validation",
+
+  "inputs": [
+    {
+      "name": "password",
+      "type": "string"
+    }
+  ],
+
+  "constraints": [
+    {
+      "field": "password",
+      "rule": "length >= 8"
+    },
+    {
+      "field": "password",
+      "rule": "length <= 20"
+    }
+  ],
+
+  "conditions": [],
+
+  "expected_behavior": [
+    "System accepts valid password",
+    "System rejects invalid password"
+  ]
+}
