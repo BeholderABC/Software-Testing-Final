@@ -1,9 +1,5 @@
-# Coverage Item Schema
-
-The Coverage Item Schema is as following
-'''json
 {
-  "coverages": [
+  "coverage": [
     {
       "requirement_id": "R1",
       "feature": "User registration",
@@ -75,5 +71,3 @@ The Coverage Item Schema is as following
       ]
     }
   ]
-}
-'

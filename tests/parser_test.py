@@ -1,3 +1,5 @@
+import json
+
 from core.parser import parse_requirement
 
 def main():
@@ -6,7 +8,7 @@ def main():
 
     result = parse_requirement(requirement)
 
-    print(result)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

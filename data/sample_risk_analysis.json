@@ -1,0 +1,40 @@
+{
+  "risk_assessment": [
+    {
+      "requirement_id": "R1",
+      "feature": "User registration",
+      "risk_level": "Low",
+      "risk_score": 3,
+      "factors": [
+        "Low business criticality: registration is important but not revenue-blocking",
+        "Low security sensitivity: no credentials or personal data processed",
+        "Low input complexity: single string field with only uniqueness constraint",
+        "Low failure impact: duplicate check failure allows either registration of duplicate (annoyance) or false rejection (retry with new name)"
+      ]
+    },
+    {
+      "requirement_id": "R2",
+      "feature": "User registration",
+      "risk_level": "Low",
+      "risk_score": 3,
+      "factors": [
+        "Low business criticality: registration is important but not revenue-blocking",
+        "Low security sensitivity: only length validation, no complexity or storage logic tested",
+        "Low input complexity: single scalar field with simple range check",
+        "Low failure impact: user simply re-enters password within limits"
+      ]
+    },
+    {
+      "requirement_id": "R3",
+      "feature": "User registration",
+      "risk_level": "Medium",
+      "risk_score": 5,
+      "factors": [
+        "business criticality: Medium (registration is needed but not revenue-critical)",
+        "security sensitivity: Medium (password rules affect account security)",
+        "input complexity: Low (single field with simple character-class rules)",
+        "failure impact: Medium (weak passwords could lead to account compromise)"
+      ]
+    }
+  ]
+}

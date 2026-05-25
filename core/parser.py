@@ -5,7 +5,6 @@ from openai import OpenAI
 import os
 from pathlib import Path
 
-
 load_dotenv()
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "parser_prompt.txt"
 client = OpenAI(
