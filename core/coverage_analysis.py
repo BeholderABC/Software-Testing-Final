@@ -81,5 +81,5 @@ def generate_coverage(parsed_requirements_json):
         all_results.append(generate_coverage_for_requirement(req))
 
     return {
-        "coverage": all_results
+        "coverages": all_results
     }
