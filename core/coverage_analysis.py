@@ -280,7 +280,7 @@ def generate_coverage_for_requirement(req):
             coverage_items += generate_charset_coverage(c)
 
         elif ctype == "pattern":
-            coverage_items
+            coverage_items += generate_pattern_coverage(c)
         
         elif ctype == "enum":
             coverage_items += generate_enum_coverage(c)

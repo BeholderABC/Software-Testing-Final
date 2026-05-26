@@ -57,6 +57,15 @@ For field constraint, there are examples:
   ]
 }
 {
+  "field": "password",
+  "type": "pattern",
+  "allowed": [
+    "uppercase",
+    "lowercase",
+    "digit"
+  ]
+}
+{
   "field": "email",
   "type": "required"
 }
