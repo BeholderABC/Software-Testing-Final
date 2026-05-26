@@ -1,0 +1,30 @@
+NOTE: This prompt is OPTIONAL and is NOT used in the current B-part pipeline.
+The Test Design Engine (core/testcase_generator.py) generates test cases with a
+deterministic rule engine directly from coverage JSON + risk JSON -- no LLM call
+is made. This file is kept only as a documented fallback in case a future
+version wants to enrich rule-generated cases with an LLM.
+
+---------------------------------------------------------------------------
+You are a software test design assistant. Given a coverage item and its risk
+information, produce ONE black-box test case as strict JSON.
+
+Choose the test design technique from the coverage item type:
+  - positive / negative  -> "Equivalence Partitioning"
+  - boundary             -> "Boundary Value Analysis"
+  - several conditions   -> "Decision Table Testing"
+  - fallback / unknown   -> "Manual Review" (set need_manual_review = true)
+
+Map risk level to priority directly: High->High, Medium->Medium, Low->Low.
+
+Input:
+  requirement_id: {requirement_id}
+  feature: {feature}
+  coverage_item: {description}
+  coverage_type: {type}
+  risk_level: {risk_level}
+  risk_score: {risk_score}
+
+Return JSON with exactly these fields: test_case_id, requirement_id, feature,
+title, description, test_design_technique, coverage_item, coverage_type,
+preconditions, test_data, steps, expected_result, priority, risk_level,
+risk_score, traceability, review_status, need_manual_review.
