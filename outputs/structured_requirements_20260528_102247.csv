@@ -1,0 +1,13 @@
+﻿requirement_id,raw_requirement,input_fields,data_ranges,conditions,expected_action,target_module
+REQ-001,"The system shall display all products with name, description, price, and stock.","product_id, quantity, stock",valid input range,valid request,return successful response,Order Processing
+REQ-002,The system shall allow users to view product details by product ID.,product_id,valid input range,valid request,return successful response,Product Management
+REQ-003,"The system shall allow admin users to create a new product with name, description, price, and stock.","product_id, quantity, stock",valid input range,valid request,return successful response,Order Processing
+REQ-004,The system shall allow admin users to update an existing product.,product_id,valid input range,valid request,return successful response,Product Management
+REQ-005,The system shall allow admin users to delete a product.,product_id,valid input range,valid request,return successful response,Product Management
+REQ-006,The system shall allow users to create an order with one or more products.,product_id,valid input range,valid request,return successful response,Order Processing
+REQ-007,The system shall reject an order if the items array is empty.,,items length = 0,empty items array,reject order and return 400 Bad Request,Order Processing
+REQ-008,The system shall reject an order if customer information is missing.,"customer_name, customer_phone, customer_address",required field is null or empty,missing required customer information,reject request and return 400 Bad Request,Order Processing
+REQ-009,The system shall reject an order if requested quantity exceeds available stock.,"quantity, stock",quantity > stock,insufficient stock,reject order and return 400 Bad Request,Order Processing
+REQ-010,The system shall automatically reduce product stock after a successful order.,"product_id, quantity, stock",stock after order = original stock - ordered quantity,successful order,update product stock,Order Processing
+REQ-011,The system shall allow users to view order details by order ID.,,valid input range,valid request,return successful response,Order Processing
+REQ-012,"The system shall allow admin users to update order status to pending, completed, or cancelled.",status,"status in [pending, completed, cancelled]",valid order status update,update order status,Order Processing
