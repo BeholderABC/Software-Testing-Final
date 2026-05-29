@@ -139,3 +139,6 @@ if FRONTEND_URL:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Use 64-bit auto primary keys (silences the W042 model checks).
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
