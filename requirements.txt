@@ -2,3 +2,9 @@ openai
 python-dotenv
 pydantic
 pandas
+openpyxl
+streamlit
+requests
+pytest
+# Enables the OpenAI SDK to reach the API through a local SOCKS proxy.
+httpx[socks]
