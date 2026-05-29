@@ -985,8 +985,6 @@ def main() -> None:
         "Requirements → Risk → Coverage → Test Cases → Optimise → Export → Run")
     st.divider()
 
-    # Navigation is strictly Back / Next; there is no step picker. Clamp
-    # the current step in case an upstream edit rolled the frontier back.
     if st.session_state.current > st.session_state.stage:
         st.session_state.current = st.session_state.stage
 
