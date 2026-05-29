@@ -1,0 +1,224 @@
+{
+  "coverages": [
+    {
+      "requirement_id": "REQ-001",
+      "feature": "system returns 200 with a JSON list of products containing name, description, pr",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-002",
+      "feature": "system returns 200 with the product detail when product_id exists",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-003",
+      "feature": "system returns 201 with the saved product when payload is valid",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-004",
+      "feature": "system updates the product and returns 200 when payload is valid",
+      "coverage_items": [
+        {
+          "description": "existing product_id",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing product_id",
+          "type": "negative"
+        },
+        {
+          "description": "null product_id",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-005",
+      "feature": "system removes the product and returns 204",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-006",
+      "feature": "system creates the order and returns 201 with order details",
+      "coverage_items": [
+        {
+          "description": "existing order_id",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing order_id",
+          "type": "negative"
+        },
+        {
+          "description": "null order_id",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-007",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-008",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-009",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-010",
+      "feature": "product.stock is decreased by quantity for each ordered item",
+      "coverage_items": [
+        {
+          "description": "existing request",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing request",
+          "type": "negative"
+        },
+        {
+          "description": "null request",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-011",
+      "feature": "system returns 200 with order detail when order_id exists",
+      "coverage_items": [
+        {
+          "description": "existing order_id",
+          "type": "positive"
+        },
+        {
+          "description": "non-existing order_id",
+          "type": "negative"
+        },
+        {
+          "description": "null order_id",
+          "type": "boundary"
+        }
+      ]
+    },
+    {
+      "requirement_id": "REQ-012",
+      "feature": "system updates the order status when status is one of the allowed values",
+      "coverage_items": [
+        {
+          "description": " pending in enumeration",
+          "type": "positive"
+        },
+        {
+          "description": " completed in enumeration",
+          "type": "positive"
+        },
+        {
+          "description": " cancelled in enumeration",
+          "type": "positive"
+        },
+        {
+          "description": "contains input out of allowed enumeration",
+          "type": "negative"
+        }
+      ]
+    }
+  ]
+}
