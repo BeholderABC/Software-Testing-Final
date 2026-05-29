@@ -1,160 +1,353 @@
-# 测试设计章节(Test Design)
+# Test Design
 
-> 对应模块:`core/testcase_generator.py`、`core/optimizer.py`
-> 对应测试:`tests/testcase_generator_test.py`、`tests/optimizer_test.py`
+## Abstract
 
-## 1. 设计目标与定位
+This document records the design of the test-case generation engines
+shipped with AutoTestDesign. Both a black-box engine, applying
+equivalence partitioning, boundary value analysis, and decision-table
+testing, and a white-box engine, applying state-transition testing,
+are implemented. Each engine produces structured test cases carrying
+full traceability and a machine-checkable test oracle. A
+risk-based optimiser orders and reduces the resulting suite. The
+description below traces every component to the technique vocabulary
+of ISO/IEC/IEEE 29119-4 and to the foundation-level test process of
+ISTQB.
 
-本部分(B 部分:测试设计引擎)位于工具流水线的中后段。整体数据流为:
+---
+
+## 1. Introduction
+
+A test design engine is the component of a test-design tool that
+converts identified coverage items into executable test cases. The
+present engines are implemented as deterministic rule engines rather
+than as language-model invocations, because the conversion is
+algorithmic and the reproducibility of the resulting suite is required
+for auditability. The engines are realised in the modules listed in
+Table 1.
+
+**Table 1.** Engine modules.
+
+| Concern | Module |
+|---|---|
+| Black-box test-case generation | [core/testcase_generator.py](../core/testcase_generator.py) |
+| White-box state-transition coverage | [core/state_model.py](../core/state_model.py) |
+| Oracle synthesis | [core/oracle.py](../core/oracle.py) |
+| Suite optimisation | [core/optimizer.py](../core/optimizer.py) |
+
+The internal verification of these engines is recorded in the unit
+suite [`tests/unit/`](../tests/unit/), comprising forty-eight cases.
+
+---
+
+## 2. Position within the Pipeline
+
+The test design engines occupy the middle of the AutoTestDesign
+pipeline. Figure 1 summarises the data flow.
 
 ```
-需求文本 ──A──> 风险分析(risk)   ┐
-        └─A──> 覆盖项(coverage) ┼──B──> ① 测试用例生成 ──> ② 测试套件优化
-                                  ┘
+requirement text ── parser ─▶ structured requirement
+                  └─ risk ─▶ risk assessment
+                  └─ coverage ─▶ coverage items
+                                  │
+                                  ▼
+                         test design engines
+                                  │
+                  ┌───────────────┼────────────────┐
+                  ▼               ▼                ▼
+            EP / BVA / DT   state transition  oracle synthesis
+                  │               │                │
+                  └───────────────┼────────────────┘
+                                  ▼
+                         risk-based optimiser
+                                  │
+                                  ▼
+                          test_cases.json
 ```
 
-- **A 部分**输出"要测哪些情况":覆盖项(coverage item)只是一句条件描述,例如
-  `username already exists`、`password length = 7`,无法直接执行。
-- **B 部分**负责把覆盖项转化为**可执行、可追溯、带优先级的结构化测试用例**,
-  再依据风险对整套用例进行**排序与最小化**。
+*Figure 1.* Position of the design engines within the pipeline.
 
-设计上刻意采用**确定性规则引擎**(不调用 LLM):相同输入永远得到相同输出,
-便于复现、便于在报告中引用、也避免了网络与模型不确定性。
+The coverage stage decides *what scenarios must be verified*. The
+design stage converts each scenario into an executable, traceable
+test case carrying a structured oracle. The optimisation stage orders
+the suite and optionally reduces it. The engines are deterministic:
+identical input yields identical output.
 
-## 2. 输入与输出
+---
 
-### 输入
-- 覆盖项 JSON:兼容顶层 key 为 `"coverages"`(A 代码 `generate_coverage()` 的真实输出)
-  与 `"coverage"`(样例文件写法)两种形式。
-- 风险分析 JSON:读取 `"risk_assessment"` 列表,按 `requirement_id` 建立索引。
-  风险信息允许缺省;缺省时默认 `risk_level = "Medium"`、`risk_score = 5`。
+## 3. Inputs and Outputs
 
-### 输出
-```json
+### 3.1 Inputs
+
+- *Coverage JSON*: accepts either `{"coverages": [...]}` (the
+  canonical form) or `{"coverage": [...]}` (legacy fixtures).
+- *Risk JSON*: the `risk_assessment` list indexed by
+  `requirement_id`. Missing risk data is tolerated and defaults to
+  `risk_level = Medium`, `risk_score = 5`.
+
+### 3.2 Output
+
+```jsonc
 {
-  "test_cases": [ { ...单条测试用例... } ],
+  "test_cases": [ /* one structured test case per item */ ],
   "summary": {
-    "total": 19,
-    "by_technique": { "Equivalence Partitioning": 6, "Boundary Value Analysis": 7, "Decision Table Testing": 6 },
-    "by_priority":  { "Low": 12, "Medium": 7 }
+    "total": 61,
+    "by_technique": {
+      "Equivalence Partitioning": 22,
+      "Boundary Value Analysis": 11,
+      "Decision Table Testing": 28
+    },
+    "by_priority": { "High": 15, "Medium": 25, "Low": 21 }
   }
 }
 ```
 
-## 3. 黑盒测试技术及其应用逻辑
+---
 
-引擎根据覆盖项的 `type` 字段自动选择测试设计技术:
+## 4. Black-Box Technique Selection
 
-| 覆盖项类型 `type` | 选用技术 | 应用逻辑 |
+Each coverage item carries a `type` field on which the engine selects
+the appropriate black-box technique. The mapping is recorded in
+Table 2 and follows ISO/IEC/IEEE 29119-4.
+
+**Table 2.** Coverage type to technique mapping.
+
+| Coverage type | Technique | Rationale |
 |---|---|---|
-| `positive` / `negative` | **等价类划分 Equivalence Partitioning** | 正例代表"有效等价类",负例代表"无效等价类",各取一个代表值即可 |
-| `boundary` | **边界值分析 Boundary Value Analysis** | 针对取值范围的临界点(如长度 7/8/9、19/20/21)取值,缺陷最易出现在边界 |
-| 同一需求下的多个覆盖项 | **决策表测试 Decision Table Testing** | 把多个条件的组合(全满足 / 缺一个 / 缺多个)作为规则,覆盖条件之间的相互作用 |
-| `fallback` / `unknown` | **人工审查 Manual Review** | 无法自动推断时生成占位用例,并置 `need_manual_review = true` |
+| `positive` / `negative` | Equivalence Partitioning (EP) | One representative value per valid or invalid class. |
+| `boundary` | Boundary Value Analysis (BVA) | Defects cluster at the edges of ranges; values are sampled on and around the limit. |
+| Several items per requirement | Decision Table Testing (DT) | Independent conditions can co-fail even when each is correct in isolation. |
+| `fallback` / `unknown` | Manual Review | The rule engine cannot infer; the case is flagged for human attention. |
 
-### 3.1 等价类划分(EP)
-对 `positive`/`negative` 覆盖项各生成一条用例。例如覆盖项
-`username already exists (negative)` → 用例尝试用已存在用户名注册,期望系统拒绝。
+### 4.1 Equivalence Partitioning
 
-### 3.2 边界值分析(BVA)
-对 `boundary` 覆盖项生成用例。结合约束 `password: min 8, max 20`,
-对 `length = 7`(越下界)判定为应拒绝,`length = 8`(在界内)判定为应接受;
-当引擎无法确知 min/max 时,采用保守表述"应按需求处理该边界值"。
+For each `positive` or `negative` coverage item, the engine emits one
+test case. The case corresponding to the coverage item *"quantity
+less than stock"* prescribes a valid quantity and asserts acceptance.
 
-### 3.3 决策表测试(DT)
-当一个需求拥有多个覆盖项时,额外生成 1~3 条组合用例:
+### 4.2 Boundary Value Analysis
 
-1. **所有必需条件均满足 → 系统接受**(来自正例集合)
-2. **恰好缺少一个必需条件 → 系统拒绝**(来自负例集合)
-3. **同时违反多个条件 → 系统拒绝**(负例 ≥ 2 时)
+For each `boundary` coverage item, the engine emits one test case.
+The coverage engine itself generates the boundary descriptions
+(`quantity = 0`, `quantity = stock`, `quantity = stock + 1`). The
+expected outcome respects the constraint window where it can be
+inferred and is conservative otherwise.
 
-若无法自动推断组合(例如某需求只有边界项、无正/负例),则生成一条基础决策表用例
-并标记 `need_manual_review = true`。每个需求最多生成 3 条决策表用例。
+### 4.3 Decision Table Testing
 
-## 4. 测试用例结构
+Whenever a requirement owns several coverage items, the engine emits
+one to three additional decision-table cases:
 
-每条用例字段统一,便于后续 `exporter` 导出与报告引用:
+1. All required conditions satisfied — acceptance (positive
+   combination).
+2. Exactly one required condition violated — rejection (negative
+   combination).
+3. Several conditions violated — rejection (only when at least two
+   negative items exist).
 
-| 字段 | 说明 |
+If no usable combination can be inferred, a single basic case is
+emitted with the flag `need_manual_review = true`. The cap of three
+decision-table cases per requirement bounds the suite size.
+
+---
+
+## 5. White-Box State Transition (FR 4.0)
+
+[core/state_model.py](../core/state_model.py) consumes a labelled
+state machine and emits test cases under one of three coverage
+criteria.
+
+**Table 3.** State-transition coverage criteria.
+
+| Criterion | What is covered |
 |---|---|
-| `test_case_id` | 稳定可读 ID,格式 `TC-{需求号}-{三位序号}`,如 `TC-R1-001` |
-| `requirement_id` / `feature` | 来源需求与功能名 |
-| `title` / `description` | 用例标题与说明 |
-| `test_design_technique` | 所用黑盒技术 |
-| `coverage_item` / `coverage_type` | 来源覆盖项原文与类型(可追溯) |
-| `preconditions` / `test_data` / `steps` | 前置条件、测试数据、操作步骤 |
-| `expected_result` | 期望结果 |
-| `priority` / `risk_level` / `risk_score` | 优先级与风险信息 |
-| `traceability` | 追溯块:`source_requirement` / `covered_item` / `coverage_strategy` |
-| `review_status` / `need_manual_review` | 生成状态与是否需人工确认 |
+| `all_states` | Every reachable state is visited at least once. |
+| `all_transitions` | Every valid edge is fired at least once. |
+| `all_transitions+guards` | All valid edges plus declared invalid edges (negative guards). |
 
-## 5. 测试数据生成规则(`infer_test_data`)
+For the Order status machine defined in
+[data/order_state_model.json](../data/order_state_model.json), the
+three criteria produce two, two, and four test cases respectively.
+The output objects share the same JSON shape as the black-box engine,
+so they flow through the optimiser, exporter, and in-UI runner
+without adaptation.
 
-依据覆盖项描述中的关键词推断出具体且合理的测试数据(节选):
+---
 
-| 覆盖项描述 | 生成的 test_data |
+## 6. Test Case Structure
+
+Every generated test case carries the field set recorded in Table 4.
+
+**Table 4.** Fields of a generated test case.
+
+| Field | Purpose |
+|---|---|
+| `test_case_id` | Stable, readable identifier of the form `TC-REQ-NNN-NNN`. |
+| `requirement_id` / `feature` | Source requirement and capability label. |
+| `title` / `description` | Human-readable summary. |
+| `test_design_technique` | EP / BVA / DT / ST / Manual Review. |
+| `coverage_item` / `coverage_type` | The originating coverage item. |
+| `preconditions` / `test_data` / `steps` | Setup, data, and execution. |
+| `expected_result` | Free-text expected outcome. |
+| `oracle` | Machine-checkable expectation (FR 5.0). |
+| `priority` / `risk_level` / `risk_score` | Priority derived from the risk register. |
+| `traceability` | `source_requirement`, `covered_item`, `coverage_strategy`. |
+| `review_status` / `need_manual_review` | Generation state. |
+
+---
+
+## 7. Test Data Inference
+
+`infer_test_data` derives a small, plausible data dictionary from the
+description of the coverage item. The matching is keyword-based; a
+selection of rules is shown in Table 5.
+
+**Table 5.** Selected test-data inference rules.
+
+| Coverage text | Generated `test_data` |
 |---|---|
 | `username already exists` | `{"username": "existing_user"}` |
 | `username is new unique value` | `{"username": "new_user_001"}` |
-| `username is empty` | `{"username": ""}` |
-| `password length = 7` | `{"password": "A1bcdef"}`(长度 7,含大写/数字/小写) |
-| `password length = 20` | 长度为 20 的合法密码 |
+| `password length = 7` | `{"password": "A1bcdef"}` (length 7, mixed case, digit) |
 | `missing uppercase` | `{"password": "abc12345"}` |
-| `missing lowercase` | `{"password": "ABC12345"}` |
-| `missing digit` | `{"password": "Abcdefgh"}` |
 | `contains all required` | `{"password": "Abc12345"}` |
 
-规则采用子串匹配,因此对 A 的丰富描述(如 `missing uppercase (has ['lowercase','digit'])`)同样适用。
+The rules match on lowercase substrings; verbose LLM-emitted
+descriptions such as *"missing uppercase (has ['lowercase',
+'digit'])"* therefore resolve correctly.
 
-## 6. 期望结果生成规则(`infer_expected_result`)
+---
 
-- **positive**:系统应接受输入并继续正常流程。
-- **negative**:系统应拒绝输入并给出合理错误信息。
-- **boundary**:能从描述解析出长度时,结合 8~20 范围判定接受/拒绝;
-  否则采用保守表述。
-- **fallback / unknown**:期望行为不明确,需人工对照需求审查。
+## 8. Expected-Result Inference
 
-## 7. 风险等级 → 优先级映射
+`infer_expected_result` mirrors the data inference. *Positive* cases
+assert acceptance and continuation; *negative* cases assert rejection
+with a meaningful error; *boundary* cases consult the constraint
+window where extractable, otherwise the wording is conservative;
+*fallback* and *unknown* cases require human review against the
+requirement.
 
-| 风险等级 `risk_level` | 优先级 `priority` |
+---
+
+## 9. Test Oracle (FR 5.0)
+
+[core/oracle.py](../core/oracle.py) augments the free-text
+`expected_result` with a machine-checkable expectation, recorded as
+the JSON object shown below.
+
+```json
+{
+  "http_status_min": 400,
+  "http_status_max": 400,
+  "must_contain": ["stock"],
+  "must_not_contain": [],
+  "side_effect": {}
+}
+```
+
+The selection rules are summarised in Table 6.
+
+**Table 6.** Oracle selection rules.
+
+| Coverage type | Default expectation |
+|---|---|
+| `positive` | 200–201. |
+| `negative` | 400. |
+| `boundary` | Inspects keyword hints (`equal to stock`, `= 0`, `exceeds`, …) to decide whether the value is inside or outside the allowed window. |
+
+For rejected cases, salient keywords are extracted from the
+requirement's `expected_behavior` and placed in `must_contain` so
+that the harness can assert that the error message names the
+violated rule. The `attach_oracles` function is idempotent: a tester
+may hand-tune one oracle and regenerate the rest without losing the
+manual override.
+
+---
+
+## 10. Risk Level to Priority
+
+The mapping is one-to-one, recorded in Table 7.
+
+**Table 7.** Risk level to priority.
+
+| `risk_level` | `priority` |
 |---|---|
 | High | High |
 | Medium | Medium |
 | Low | Low |
-| (缺失) | 默认 Medium |
+| (missing) | Medium |
 
-该映射在生成用例时即写入每条用例,并在优化阶段保持一致。
+The mapping is applied during case generation and preserved by the
+optimiser.
 
-## 8. 测试套件优化设计(`optimizer.py`)
+---
 
-### 8.1 优先级排序 `prioritize_test_cases`
-按以下次序降序排序(排序稳定,平局保持原序):
+## 11. Suite Optimisation (FR 7.0)
+
+### 11.1 Prioritisation
+
+`prioritize_test_cases` performs a stable sort in descending order
+of importance:
 
 ```
-风险等级(High>Medium>Low) → 风险分(越高越前) → 技术(决策表>边界值>等价类) → 覆盖类型(boundary/negative 优先)
+risk_level (High > Medium > Low)
+  → risk_score (higher first)
+    → technique (DT > BVA > EP)
+      → coverage type (boundary / negative > positive)
 ```
 
-### 8.2 基于风险的最小化 `minimize_test_suite(mode="risk_based")`
-- **High 风险需求**:保留全部用例(风险越高,覆盖越充分)。
-- **Medium 风险需求**:保留每种覆盖类型的代表用例,并保留全部决策表用例。
-- **Low 风险需求**:按覆盖类型去重精简,但**每个需求至少保留 1 条**。
+### 11.2 Risk-based minimisation
 
-### 8.3 统一入口 `optimize_test_suite`
-可选地用 `risk_json` 刷新各用例的风险/优先级,然后排序,
-再按需最小化,返回:
+`minimize_test_suite(mode="risk_based")` applies the rule recorded in
+Table 8.
+
+**Table 8.** Minimisation rule.
+
+| Risk level | Retention policy |
+|---|---|
+| High | Every case is retained. |
+| Medium | One representative per coverage type is retained, together with every decision-table case. |
+| Low | Cases are deduplicated by coverage type; at least one case is always retained. |
+
+### 11.3 Public entry point
+
+`optimize_test_suite` optionally refreshes the risk and priority of
+each case from the supplied risk JSON, then prioritises, then
+minimises. It returns the structure shown below.
 
 ```json
 {
   "optimized_test_cases": [ ... ],
   "optimization_summary": {
-    "original_count": 19, "optimized_count": 11,
-    "strategy": "risk_based_minimization", "removed_count": 8
+    "original_count": 61,
+    "optimized_count": 55,
+    "strategy": "risk_based_minimization",
+    "removed_count": 6
   }
 }
 ```
 
-## 9. 验证
+---
 
-`tests/` 下两套单元测试(共 19 个)覆盖:三种技术齐全、ID 格式与唯一性、
-可追溯性、风险→优先级映射、fallback 人工审查、空输入容错、排序正确性、
-以及"最小化后每个需求至少保留 1 条"。在示例数据上全部通过(OK)。
+## 12. Validation
+
+The engines are internally verified by the unit suite. Table 9 records
+the per-module case counts.
+
+**Table 9.** Unit-test coverage of the design engines.
+
+| Module | Cases |
+|---|---|
+| `testcase_generator_test.py` | 11 — technique selection, identifier format, traceability, risk defaults, fallback, summary, empty input. |
+| `optimizer_test.py` | 8 — prioritisation order, minimisation invariants, tolerant input. |
+| `state_model_test.py` | 8 — model loading, all-states, all-transitions, guard generation, schema parity. |
+| `oracle_test.py` | 9 — positive and negative defaults, boundary heuristics, keyword extraction, idempotence. |
+| `exporter_test.py` | 11 — round-trip through CSV, JSON, Excel; serialisation of nested fields. |
+
+All forty-seven engine unit tests pass offline.
+
+---
+
+## References
+
+- ISO/IEC/IEEE 29119-4:2021, *Software and systems engineering — Software testing — Part 4: Test techniques*.
+- International Software Testing Qualifications Board (ISTQB), *Foundation Level Syllabus*, 2018.

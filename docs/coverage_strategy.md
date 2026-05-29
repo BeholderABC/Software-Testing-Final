@@ -1,95 +1,189 @@
-# 覆盖策略章节(Coverage Strategy)
+# Coverage Strategy
 
-> 对应模块:`core/testcase_generator.py`、`core/optimizer.py`
+## Abstract
 
-## 1. 覆盖目标
+This document records the coverage strategy adopted by AutoTestDesign:
+the principles that govern *what* is covered, *how* it is covered,
+and *to what depth* it is covered. The strategy aligns with the
+risk-based testing principle of ISO/IEC/IEEE 29119-1: test effort is
+allocated in proportion to product risk. The application of the
+strategy to the Mini-E-Commerce backend is summarised by the
+metrics recorded in §5.
 
-本工具的覆盖策略要回答三个问题:
+---
 
-1. **覆盖什么** —— 把 A 部分识别出的每一个覆盖项都转化为至少一条测试用例,
-   做到"需求 → 覆盖项 → 测试用例"全程可追溯,不遗漏已识别的情况。
-2. **怎么覆盖** —— 针对不同类型的覆盖项,选择最合适的黑盒测试技术(等价类 / 边界值 / 决策表),
-   并对多条件需求补充组合覆盖。
-3. **覆盖到什么程度** —— 在测试成本有限的前提下,按风险分配覆盖强度:
-   高风险需求覆盖更充分,低风险需求适度精简,避免冗余。
+## 1. Introduction
 
-## 2. 可追溯性:覆盖项 → 测试用例
+A coverage strategy is the bridge between the catalogue of
+identified scenarios and the executable test suite that exercises
+them. Three questions are addressed below.
 
-每条测试用例都携带 `traceability` 追溯块,保证覆盖链路可双向回溯:
+1. **What is covered?** Every coverage item identified by the
+   coverage engine must be realised by at least one test case
+   ([§2](#2-coverage-objective-traceability)).
+2. **How is it covered?** Each coverage type is paired with the
+   technique recommended by ISO/IEC/IEEE 29119-4
+   ([§3](#3-coverage-type-to-technique-mapping)).
+3. **To what depth?** The depth of coverage allocated to each
+   requirement is determined by its risk level
+   ([§4](#4-risk-based-coverage-depth)).
+
+---
+
+## 2. Coverage Objective: Traceability
+
+The strategy enforces an end-to-end chain
+*requirement → coverage item → test case → traceability block*. Every
+test case carries a `traceability` block recording the originating
+requirement, the covered item, and the strategy applied. A report
+may therefore decompose the suite by strategy at need, and any
+failure may be traced back to the rule it violates. The illustrative
+chain is shown in Figure 1.
 
 ```
-需求 R1 ──> 覆盖项 "username already exists" ──> 用例 TC-R1-001
-                                                  traceability = {
-                                                    source_requirement: "R1",
-                                                    covered_item: "username already exists",
-                                                    coverage_strategy: "negative path coverage"
-                                                  }
+REQ-009 ──▶ coverage item "quantity > stock"
+                       │
+                       ▼
+                TC-REQ-009-003
+                traceability = {
+                  source_requirement: "REQ-009",
+                  covered_item: "quantity greater than stock",
+                  coverage_strategy: "negative path coverage"
+                }
 ```
 
-`coverage_strategy` 字段记录该用例采用的覆盖思路(正路径 / 负路径 / 边界 / 组合 / 人工),
-便于在评审与报告中统计各类覆盖的占比。
+*Figure 1.* Traceability block produced by the engine.
 
-## 3. 覆盖类型 → 技术 的覆盖理由
+---
 
-| 覆盖类型 | 采用技术 | 覆盖理由 |
+## 3. Coverage Type to Technique Mapping
+
+The pairing of coverage type with technique follows
+ISO/IEC/IEEE 29119-4 §6 and §7. Table 1 records the mapping.
+
+**Table 1.** Coverage type to technique.
+
+| Coverage type | Technique | Rationale |
 |---|---|---|
-| positive | 等价类划分 | 用一个有效等价类代表值验证"正常流程被接受" |
-| negative | 等价类划分 | 用一个无效等价类代表值验证"非法输入被拒绝" |
-| boundary | 边界值分析 | 缺陷高发于取值范围的临界点,针对上/下界及其邻域取值 |
-| 多覆盖项组合 | 决策表测试 | 单条件正确不代表组合正确,需覆盖条件间的相互作用 |
-| fallback / unknown | 人工审查 | 自动规则无法覆盖时显式标记,避免"假装覆盖" |
+| `positive` | Equivalence Partitioning (EP) | One representative confirms acceptance of the happy path. |
+| `negative` | Equivalence Partitioning (EP) | One representative confirms rejection of an invalid input. |
+| `boundary` | Boundary Value Analysis (BVA) | Defects cluster at the edges of ranges; values are sampled on and around the limit. |
+| Multiple coverage items per requirement | Decision Table Testing (DT) | Independent conditions can co-fail even when each is correct in isolation. |
+| State transition (white box) | State Transition Testing (ST) | Behaviour is best modelled as a finite state machine; coverage criteria select the exhaustiveness. |
+| `fallback` / `unknown` | Manual Review | When the engine cannot infer intent, the case is emitted but flagged for human attention. |
 
-## 4. 基于风险的覆盖强度策略
+---
 
-覆盖不是"越多越好",而是"把有限的测试投入到最可能出问题、出问题代价最大的地方"。
-据此,最小化阶段按需求的风险等级分配覆盖强度:
+## 4. Risk-Based Coverage Depth
 
-| 风险等级 | 覆盖强度 | 具体做法 | 依据 |
-|---|---|---|---|
-| **High** | 最强(多保留) | 保留全部用例,尤其是 boundary / negative / 决策表用例 | 失效影响大,需充分覆盖 |
-| **Medium** | 适中 | 每种覆盖类型保留代表用例 + 保留全部决策表用例 | 兼顾覆盖与成本 |
-| **Low** | 精简(适当减少) | 按覆盖类型去重,**每个需求至少保留 1 条** | 失效影响小,避免冗余 |
+Coverage budgets are finite; the strategy therefore allocates depth
+in proportion to risk level. The rule is recorded in Table 2.
 
-排序上同样体现风险优先:风险高、技术更强(决策表 > 边界值 > 等价类)、
-覆盖类型更关键(boundary / negative)的用例排在前面,优先执行。
+**Table 2.** Risk-to-depth rule.
 
-## 5. 覆盖度量(基于示例数据)
+| Risk level | Depth | Concrete behaviour |
+|---|---|---|
+| High | Maximum | Every generated case is retained; boundary, negative, and decision-table cases receive the most defence. |
+| Medium | Balanced | One representative per coverage type is retained, together with every decision-table case. |
+| Low | Minimal | Cases are deduplicated by coverage type; at least one case is always retained per requirement. |
 
-示例输入含 3 个需求,A 部分共识别 13 个覆盖项,B 部分生成 19 条用例:
+Prioritisation respects the same intent: higher risk, stronger
+technique, and harder coverage type are scheduled first.
 
-| 需求 | 功能 / 约束 | 风险 | 覆盖项数 | 生成用例(含决策表) | 最小化后保留 |
-|---|---|---|---|---|---|
-| R1 | 用户名唯一性 | Low | 3 | 5(EP 2 + BVA 1 + DT 2) | 4 |
-| R2 | 密码长度 8~20 | Low | 6 | 7(BVA 6 + DT 1) | 2 |
-| R3 | 密码字符集 | Medium | 4 | 7(EP 4 + DT 3) | 5 |
-| **合计** | | | **13** | **19** | **11** |
+---
 
-按技术统计(生成阶段):
+## 5. Coverage Metrics on the Baseline
 
-| 测试技术 | 用例数 |
-|---|---|
-| 等价类划分 Equivalence Partitioning | 6 |
-| 边界值分析 Boundary Value Analysis | 7 |
-| 决策表测试 Decision Table Testing | 6 |
-| **合计** | **19** |
+Running the rule pipeline on
+[data/mini_ecommerce_requirements.json](../data/mini_ecommerce_requirements.json)
+produces the reproducible baseline persisted to
+[data/baseline/test_cases.json](../data/baseline/test_cases.json).
+The black-box rule pipeline contributes sixty-one cases; the
+white-box state-transition engine of §3 contributes a further four
+for the order-status requirement, giving sixty-five cases in the
+persisted baseline. Aggregate counts are recorded in Tables 3 to 5.
 
-按优先级统计:Low 12 条、Medium 7 条(优先级直接由风险等级映射而来)。
+**Table 3.** Aggregate coverage on the baseline.
 
-## 6. 最小化前后的覆盖权衡
+| Aggregate | Count |
+|---|---:|
+| Coverage items (black box) | 37 |
+| Black-box test cases generated | 61 |
+| White-box state-transition cases | 4 |
+| Total cases in the baseline | 65 |
+| After risk-based minimisation (black box) | 55 |
 
-最小化将套件由 **19 条压缩到 11 条**(移除 8 条冗余),具体体现策略意图:
+**Table 4.** Distribution by technique.
 
-- **R2(Low,密码长度)**:6 个边界覆盖项压缩最明显(7 → 2)——低风险需求中
-  大量同类边界用例被视为冗余,按类型去重后仅保留代表用例,但仍保证 ≥ 1 条。
-- **R3(Medium,密码字符集)**:保留较多(7 → 5)——保留各类型代表用例并完整保留
-  3 条决策表组合用例,因为字符集规则直接关系账户安全。
-- **R1(Low,用户名)**:按类型去重(5 → 4),保留正例 / 负例 / 边界 / 组合各一类。
+| Technique | Cases |
+|---|---:|
+| Equivalence Partitioning | 26 |
+| Boundary Value Analysis | 11 |
+| Decision Table Testing | 24 |
+| State Transition Testing | 4 |
+| **Total** | **65** |
 
-由此,套件在显著降低执行成本的同时,**仍覆盖每个需求、保留全部覆盖类型与高价值的组合用例**,
-实现了"风险导向、不留盲区"的覆盖目标。
+**Table 5.** Distribution by priority (derived from the risk level).
 
-## 7. 兼容性与容错说明
+| Priority | Cases |
+|---|---:|
+| High | 15 |
+| Medium | 30 |
+| Low | 20 |
 
-- 兼容覆盖 JSON 顶层 key `"coverages"` 与 `"coverage"`(A 代码输出与样例文件不一致,二者均支持)。
-- 风险 JSON 缺失时默认 Medium / 5,保证流程不中断。
-- 对 `fallback` / 未知类型覆盖项显式标记人工审查,确保"无法自动覆盖"的情况被记录而非被忽略。
+The four white-box state-transition cases carry a Medium priority
+(REQ-012 is rated Medium in the risk register), so they fall in the
+Medium row.
+
+---
+
+## 6. Trade-Offs of the Minimisation
+
+The minimisation step is a deliberate trade-off between cost and
+confidence:
+
+- *Low-risk requirements with redundant coverage* are collapsed to a
+  small representative set.
+- *Medium-risk requirements* retain one representative per coverage
+  type and **all** decision-table combinations, because combinations
+  often reveal cross-condition defects that single-condition tests
+  miss.
+- *High-risk requirements* are left untouched; the additional
+  execution time is inexpensive in comparison with a missed defect.
+
+The optimiser guarantees that no requirement is left uncovered, so
+the minimised suite never abandons a requirement.
+
+---
+
+## 7. Robustness
+
+The strategy is defensive at three points:
+
+1. The black-box engine accepts both `{"coverages": …}` and
+   `{"coverage": …}` shapes for the coverage input.
+2. Missing risk information defaults to Medium / 5 / Medium priority
+   so that the pipeline continues to produce output.
+3. Coverage items typed as `fallback` or `unknown` are emitted as
+   manual-review cases rather than silently dropped — the cases are
+   visible to the tester and easy to catch at review.
+
+---
+
+## 8. Conclusion
+
+The strategy applies the three coverage decisions — what, how, to
+what depth — under the risk-based testing principle. Its application
+to the Mini-E-Commerce backend produces a sixty-five-case baseline
+(sixty-one black-box cases that minimise to fifty-five while
+preserving full coverage, plus four white-box state-transition
+cases), and concentrates effort on the order workflow at which the
+three real defects of
+[test_result_analysis.md](test_result_analysis.md) are detected.
+
+---
+
+## References
+
+- ISO/IEC/IEEE 29119-1:2022, *Software and systems engineering — Software testing — Part 1: General concepts*.
+- ISO/IEC/IEEE 29119-4:2021, *Part 4: Test techniques*.
