@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -35,9 +37,29 @@ class OrderDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
+    # Orders form a finite state machine: `completed` and `cancelled` are
+    # terminal. A request that attempts to move an order out of a terminal
+    # state is rejected so the status field cannot be rewritten freely.
+    TERMINAL_STATES = ("completed", "cancelled")
+
+    def update(self, request, *args, **kwargs):
+        order = self.get_object()
+        new_status = request.data.get("status")
+        if (new_status is not None
+                and order.status in self.TERMINAL_STATES
+                and new_status != order.status):
+            return Response(
+                {"status": (
+                    f"order is already '{order.status}' (a terminal state) "
+                    f"and cannot transition to '{new_status}'")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().update(request, *args, **kwargs)
+
 
 # Create an order
 class CreateOrderAPIView(APIView):
+    @transaction.atomic
     def post(self, request):
         """
         Expected request data:
@@ -84,7 +106,7 @@ class CreateOrderAPIView(APIView):
                 quantity = item.get('quantity')
 
                 if product_id is None or quantity is None:
-                    order.delete()
+                    transaction.set_rollback(True)
                     return Response(
                         {"error": "product_id and quantity are required"},
                         status=status.HTTP_400_BAD_REQUEST
@@ -93,14 +115,14 @@ class CreateOrderAPIView(APIView):
                 try:
                     quantity = int(quantity)
                 except (TypeError, ValueError):
-                    order.delete()
+                    transaction.set_rollback(True)
                     return Response(
                         {"error": "Quantity must be a valid integer"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
                 if quantity <= 0:
-                    order.delete()
+                    transaction.set_rollback(True)
                     return Response(
                         {"error": "Quantity must be greater than 0"},
                         status=status.HTTP_400_BAD_REQUEST
@@ -109,14 +131,14 @@ class CreateOrderAPIView(APIView):
                 try:
                     product = Product.objects.get(id=product_id)
                 except Product.DoesNotExist:
-                    order.delete()
+                    transaction.set_rollback(True)
                     return Response(
                         {"error": f"Product {product_id} does not exist"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
                 if product.stock < quantity:
-                    order.delete()
+                    transaction.set_rollback(True)
                     return Response(
                         {
                             "error": (
@@ -145,7 +167,7 @@ class CreateOrderAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            order.delete()
+            transaction.set_rollback(True)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST

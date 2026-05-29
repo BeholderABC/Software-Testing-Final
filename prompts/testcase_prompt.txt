@@ -1,30 +1,49 @@
-NOTE: This prompt is OPTIONAL and is NOT used in the current B-part pipeline.
-The Test Design Engine (core/testcase_generator.py) generates test cases with a
-deterministic rule engine directly from coverage JSON + risk JSON -- no LLM call
-is made. This file is kept only as a documented fallback in case a future
-version wants to enrich rule-generated cases with an LLM.
+NOTE — This prompt is OPTIONAL. The Test Design Engine in
+`core/testcase_generator.py` generates test cases deterministically from
+the coverage and risk JSON; it does NOT call an LLM. This file is kept
+as a reference fallback in case a future variant of the tool wants to
+enrich rule-generated cases with an LLM rewrite.
 
----------------------------------------------------------------------------
-You are a software test design assistant. Given a coverage item and its risk
-information, produce ONE black-box test case as strict JSON.
+If you do invoke this prompt, the model receives ONE coverage item plus
+its risk record and must produce ONE structured test case as strict JSON.
 
-Choose the test design technique from the coverage item type:
-  - positive / negative  -> "Equivalence Partitioning"
-  - boundary             -> "Boundary Value Analysis"
-  - several conditions   -> "Decision Table Testing"
-  - fallback / unknown   -> "Manual Review" (set need_manual_review = true)
+Technique selection rules
+- coverage_type "positive" or "negative" → "Equivalence Partitioning"
+- coverage_type "boundary"               → "Boundary Value Analysis"
+- multi-condition combinations           → "Decision Table Testing"
+- coverage_type "fallback" or "unknown"  → "Manual Review"
+                                            and set need_manual_review=true
 
-Map risk level to priority directly: High->High, Medium->Medium, Low->Low.
+Priority mapping: risk_level → priority directly (High→High, …).
 
-Input:
-  requirement_id: {requirement_id}
-  feature: {feature}
-  coverage_item: {description}
-  coverage_type: {type}
-  risk_level: {risk_level}
-  risk_score: {risk_score}
+Input fields available to the model
+  requirement_id, feature,
+  coverage_item (the natural-language scenario),
+  coverage_type,
+  risk_level, risk_score
 
-Return JSON with exactly these fields: test_case_id, requirement_id, feature,
-title, description, test_design_technique, coverage_item, coverage_type,
-preconditions, test_data, steps, expected_result, priority, risk_level,
-risk_score, traceability, review_status, need_manual_review.
+Output schema (return ONLY this object)
+{
+  "test_case_id": "TC-REQ-NNN-NNN",
+  "requirement_id": "REQ-NNN",
+  "feature": "...",
+  "title": "...",
+  "description": "...",
+  "test_design_technique": "Equivalence Partitioning | Boundary Value Analysis | Decision Table Testing | Manual Review",
+  "coverage_item": "<echo of input>",
+  "coverage_type": "<echo of input>",
+  "preconditions": ["..."],
+  "test_data": { "field": "value" },
+  "steps": ["step 1", "step 2", "..."],
+  "expected_result": "what should happen",
+  "priority": "High | Medium | Low",
+  "risk_level": "<echo of input>",
+  "risk_score": <int>,
+  "traceability": {
+    "source_requirement": "REQ-NNN",
+    "covered_item": "<echo>",
+    "coverage_strategy": "positive path coverage | negative path coverage | boundary value coverage | decision table / combination coverage | manual coverage"
+  },
+  "review_status": "generated",
+  "need_manual_review": false
+}

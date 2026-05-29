@@ -49,7 +49,7 @@
       "constraints": [
         {
           "field": "password",
-          "type": "character_set",
+          "type": "charset",
           "required": [
             "uppercase",
             "lowercase",

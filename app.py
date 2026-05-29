@@ -1,9 +1,71 @@
+"""
+AutoTestDesign Streamlit UI (scheduler layer).
+
+This module is intentionally thin: it orchestrates the pipeline modules
+under ``core/`` and exposes them as a nine-step Streamlit workflow.
+
+LLM nodes (parser, risk analysis) prefer the live model defined in
+``core/parser.py`` / ``core/risk_analysis.py``. When the API key is
+missing or the call raises, the UI silently falls back to the
+deterministic rule pipeline in ``core/pipeline_fallback.py`` so the
+demo always finishes end-to-end.
+
+Pipeline::
+
+    requirement text
+        → parse            (LLM or rule)
+        → risk analysis    (LLM or rule)
+        → coverage items   (rule engine over constraint types)
+        → test cases       (EP / BVA / DT engine) + structured oracle
+        → state coverage   (white-box state-transition model)
+        → optimise         (prioritise + risk-based minimise, optional)
+        → export           (CSV / JSON / Excel)
+        → run tests        (subprocess pytest against the live backend)
+
+Every editable step uses ``st.data_editor`` so the designer can revise
+the artefact and trigger downstream regeneration. This satisfies the
+interactive-review requirement of the assignment.
+"""
+
+from __future__ import annotations
+
 import json
 import os
-from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 import streamlit as st
+
+# Load .env explicitly here so the API key is detected even when the
+# optional LLM packages are absent. This must run before _has_llm_key()
+# or any os.getenv() lookup below.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
+from core import (
+    coverage_analysis,
+    exporter,
+    optimizer,
+    oracle as oracle_mod,
+    pipeline_fallback,
+    state_model as state_model_mod,
+    test_runner,
+    testcase_generator,
+)
+
+# LLM modules import OpenAI at import-time; tolerate ImportError so the UI
+# works even when openai/python-dotenv are missing.
+try:
+    from core import parser as llm_parser
+    from core import risk_analysis as llm_risk
+    _LLM_AVAILABLE = True
+except Exception:
+    llm_parser = None
+    llm_risk = None
+    _LLM_AVAILABLE = False
 
 
 OUTPUT_DIR = "outputs"
@@ -24,587 +86,910 @@ REQ-011: The system shall allow users to view order details by order ID.
 REQ-012: The system shall allow admin users to update order status to pending, completed, or cancelled."""
 
 
-def parse_requirements(raw_text):
+# ---------------------------------------------------------------------------
+# Scheduler helpers
+# ---------------------------------------------------------------------------
+
+def _has_llm_key() -> bool:
+    """LLM is only attempted when an API key is configured."""
+    return bool(os.getenv("API_KEY"))
+
+
+def _llm_parse_requirements(raw_text: str
+                            ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    """Call the LLM parser and return both the UI DataFrame and the raw
+    schema-v1 JSON. The JSON is preserved so the coverage engine — which
+    needs the structured ``constraints`` field — can consume it directly.
+    """
+    if not (_LLM_AVAILABLE and llm_parser):
+        raise RuntimeError("LLM parser module unavailable")
+
+    parsed = llm_parser.parse_requirement(raw_text)
+    requirements = parsed.get("requirements", []) if isinstance(parsed, dict) \
+        else []
+    if not requirements:
+        raise RuntimeError("LLM parser returned no requirements")
+
     rows = []
-    for line in raw_text.splitlines():
-        line = line.strip()
-        if not line:
-            continue
+    enriched: List[Dict[str, Any]] = []
+    for req in requirements:
+        constraints = req.get("constraints", []) or []
+        data_ranges = ", ".join(
+            _summarise_constraint(c) for c in constraints) or "valid input"
+        conditions = ", ".join(req.get("conditions", []) or []) or "valid request"
+        expected = ", ".join(req.get("expected_behavior", []) or []) or \
+            "return successful response"
+        feature = req.get("feature", "")
 
-        if ":" in line:
-            req_id, req_text = line.split(":", 1)
-            req_id = req_id.strip()
-            req_text = req_text.strip()
-        else:
-            req_id = f"REQ-{len(rows) + 1:03d}"
-            req_text = line
-
-        lower = req_text.lower()
-
-        if "order" in lower or "stock" in lower or "customer" in lower:
+        if any(k in feature.lower() for k in ("order", "stock", "customer")):
             target_module = "Order Processing"
-        elif "product" in lower:
+        elif "product" in feature.lower():
             target_module = "Product Management"
         else:
             target_module = "General"
 
-        input_fields = []
-        if "product" in lower:
-            input_fields.append("product_id")
-        if "quantity" in lower or "stock" in lower:
-            input_fields.append("quantity")
-            input_fields.append("stock")
-        if "customer" in lower:
-            input_fields.extend(["customer_name", "customer_phone", "customer_address"])
-        if "status" in lower:
-            input_fields.append("status")
-
-        if "exceeds available stock" in lower:
-            data_ranges = "quantity > stock"
-            conditions = "insufficient stock"
-            expected_action = "reject order and return 400 Bad Request"
-        elif "empty" in lower:
-            data_ranges = "items length = 0"
-            conditions = "empty items array"
-            expected_action = "reject order and return 400 Bad Request"
-        elif "missing" in lower:
-            data_ranges = "required field is null or empty"
-            conditions = "missing required customer information"
-            expected_action = "reject request and return 400 Bad Request"
-        elif "reduce product stock" in lower:
-            data_ranges = "stock after order = original stock - ordered quantity"
-            conditions = "successful order"
-            expected_action = "update product stock"
-        elif "status" in lower:
-            data_ranges = "status in [pending, completed, cancelled]"
-            conditions = "valid order status update"
-            expected_action = "update order status"
-        else:
-            data_ranges = "valid input range"
-            conditions = "valid request"
-            expected_action = "return successful response"
+        rid = req.get("requirement_id") or f"REQ-{len(rows) + 1:03d}"
+        raw_sentence = feature or " ".join(req.get("expected_behavior", []))
 
         rows.append({
-            "requirement_id": req_id,
-            "raw_requirement": req_text,
-            "input_fields": ", ".join(input_fields),
+            "requirement_id": rid,
+            "raw_requirement": raw_sentence,
+            "input_fields": ", ".join(req.get("inputs", []) or []),
             "data_ranges": data_ranges,
             "conditions": conditions,
-            "expected_action": expected_action,
+            "expected_action": expected,
             "target_module": target_module,
         })
-
-    return pd.DataFrame(rows)
-
-
-def analyze_risk(requirements_df):
-    rows = []
-    for _, row in requirements_df.iterrows():
-        text = row["raw_requirement"].lower()
-        module = row["target_module"]
-
-        business_impact = 3
-        failure_probability = 2
-        complexity = 2
-        user_frequency = 2
-
-        if "order" in text:
-            business_impact = 5
-            user_frequency = 5
-        if "stock" in text:
-            business_impact = 5
-            complexity = 4
-        if "reject" in text or "missing" in text or "exceeds" in text:
-            failure_probability = 4
-        if "status" in text:
-            complexity = 3
-        if module == "Product Management":
-            business_impact = max(business_impact, 3)
-
-        risk_score = business_impact + failure_probability + complexity + user_frequency
-
-        if risk_score >= 15:
-            priority = "High"
-        elif risk_score >= 10:
-            priority = "Medium"
-        else:
-            priority = "Low"
-
-        rows.append({
-            "requirement_id": row["requirement_id"],
-            "target_module": module,
-            "business_impact": business_impact,
-            "failure_probability": failure_probability,
-            "complexity": complexity,
-            "user_frequency": user_frequency,
-            "risk_score": risk_score,
-            "priority": priority,
-            "risk_reason": build_risk_reason(row["raw_requirement"], priority),
+        # Carry through the structured fields the coverage engine needs.
+        enriched.append({
+            "requirement_id": rid,
+            "feature": feature or raw_sentence,
+            "raw_requirement": raw_sentence,
+            "target_module": target_module,
+            "inputs": req.get("inputs", []) or [],
+            "constraints": constraints,
+            "conditions": req.get("conditions", []) or [],
+            "expected_behavior": req.get("expected_behavior", []) or [],
         })
-
-    return pd.DataFrame(rows)
-
-
-def build_risk_reason(requirement_text, priority):
-    text = requirement_text.lower()
-    if "order" in text and "stock" in text:
-        return "Order and stock logic directly affects core business correctness."
-    if "order" in text:
-        return "Order processing is a core business workflow."
-    if "reject" in text or "missing" in text:
-        return "Invalid input handling affects reliability and user experience."
-    if "product" in text:
-        return "Product data affects browsing and management functions."
-    return f"Priority classified as {priority} based on impact and complexity."
+    return pd.DataFrame(rows), {"requirements": enriched}
 
 
-def generate_coverage_items(requirements_df, risk_df):
+def _summarise_constraint(c: Dict[str, Any]) -> str:
+    ctype = c.get("type", "")
+    field = c.get("field", "")
+    if ctype == "length":
+        return f"{field} length in [{c.get('min', '?')}, {c.get('max', '?')}]"
+    if ctype == "numeric_range":
+        return f"{field} in [{c.get('min', '?')}, {c.get('max', '?')}]"
+    if ctype == "relational":
+        return f"{field} {c.get('operator', '?')} {c.get('target', '?')}"
+    if ctype == "enum":
+        return f"{field} in {c.get('allowed', [])}"
+    return f"{field}:{ctype}"
+
+
+def _llm_analyse_risk(requirements_df: pd.DataFrame) -> pd.DataFrame:
+    """Use the LLM risk analyser per requirement and convert to a DataFrame."""
+    if not (_LLM_AVAILABLE and llm_risk):
+        raise RuntimeError("LLM risk module unavailable")
+
+    parsed_payload = {
+        "requirements": [
+            {"requirement_id": row["requirement_id"],
+             "feature": row.get("target_module", ""),
+             "expected_behavior": [row.get("expected_action", "")]}
+            for _, row in requirements_df.iterrows()
+        ]
+    }
+    risk_blob = llm_risk.analyze_risks(parsed_payload)
+    assessment = risk_blob.get("risk_assessment", []) if isinstance(
+        risk_blob, dict) else []
+    if not assessment:
+        raise RuntimeError("LLM risk analyser returned no entries")
+
+    by_id = {a["requirement_id"]: a for a in assessment}
     rows = []
     for _, req in requirements_df.iterrows():
-        risk = risk_df[risk_df["requirement_id"] == req["requirement_id"]].iloc[0]
-        priority = risk["priority"]
-        text = req["raw_requirement"].lower()
-
+        rid = req["requirement_id"]
+        entry = by_id.get(rid, {"risk_level": "Medium", "risk_score": 5})
+        risk_level = entry.get("risk_level", "Medium")
         rows.append({
-            "coverage_item_id": f"CI-{len(rows) + 1:03d}",
-            "requirement_id": req["requirement_id"],
-            "target_module": req["target_module"],
-            "coverage_item": f"Validate: {req['expected_action']}",
-            "coverage_strategy": "Equivalence Partitioning",
-            "priority": priority,
+            "requirement_id": rid,
+            "target_module": req.get("target_module", ""),
+            "business_impact": entry.get("business_impact", "-"),
+            "failure_probability": entry.get("failure_probability", "-"),
+            "complexity": entry.get("complexity", "-"),
+            "failure_impact": entry.get("failure_impact", "-"),
+            "risk_score": int(entry.get("risk_score", 5)),
+            "risk_level": risk_level,
+            "priority": risk_level,
+            "risk_reason": "; ".join(entry.get("factors", []) or [])
+                            or "LLM-derived risk",
         })
-
-        if priority in ["High", "Medium"]:
-            rows.append({
-                "coverage_item_id": f"CI-{len(rows) + 1:03d}",
-                "requirement_id": req["requirement_id"],
-                "target_module": req["target_module"],
-                "coverage_item": f"Boundary validation for {req['data_ranges']}",
-                "coverage_strategy": "Boundary Value Analysis",
-                "priority": priority,
-            })
-
-        if "order" in text or "stock" in text or "missing" in text or "reject" in text:
-            rows.append({
-                "coverage_item_id": f"CI-{len(rows) + 1:03d}",
-                "requirement_id": req["requirement_id"],
-                "target_module": req["target_module"],
-                "coverage_item": "Decision combinations for valid/invalid product, quantity, stock, and customer information",
-                "coverage_strategy": "Decision Table Testing",
-                "priority": priority,
-            })
-
     return pd.DataFrame(rows)
 
 
-def generate_test_cases(requirements_df, risk_df, coverage_df):
-    rows = []
+def parse_with_fallback(raw_text: str
+                        ) -> Tuple[pd.DataFrame, Dict[str, Any], str]:
+    """Try the LLM parser, fall back to the rule parser on any error.
 
-    for _, cov in coverage_df.iterrows():
-        req = requirements_df[requirements_df["requirement_id"] == cov["requirement_id"]].iloc[0]
-        risk = risk_df[risk_df["requirement_id"] == cov["requirement_id"]].iloc[0]
+    Returns ``(dataframe_for_ui, structured_json, source_label)``.
+    The structured JSON is the canonical schema-v1 form used by every
+    downstream pipeline stage.
+    """
+    if _has_llm_key():
+        try:
+            df, parsed = _llm_parse_requirements(raw_text)
+            return df, parsed, "LLM"
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"LLM parser failed, using rule fallback. ({exc})")
+    df = pipeline_fallback.parse_requirements(raw_text)
+    parsed = pipeline_fallback.parse_requirements_struct(raw_text)
+    return df, parsed, "Rule"
 
-        base = {
-            "requirement_id": req["requirement_id"],
-            "target_module": req["target_module"],
-            "risk_priority": risk["priority"],
-            "testing_technique": cov["coverage_strategy"],
-            "coverage_item": cov["coverage_item"],
-            "precondition": "The Mini E-Commerce backend is running and test data exists.",
-            "traceability": f"{req['requirement_id']} -> {cov['coverage_item_id']}",
+
+def analyse_risk_with_fallback(requirements_df: pd.DataFrame
+                               ) -> Tuple[pd.DataFrame, str]:
+    """Try LLM risk analyser, fall back to rules."""
+    if _has_llm_key():
+        try:
+            df = _llm_analyse_risk(requirements_df)
+            return df, "LLM"
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"LLM risk analysis failed, using rule fallback. ({exc})")
+    return pipeline_fallback.analyze_risk(requirements_df), "Rule"
+
+
+def generate_coverage(parsed_struct: Dict[str, Any],
+                      risk_df: pd.DataFrame) -> pd.DataFrame:
+    """Coverage items derive from the structured constraints via the
+    deterministic engine in ``core/coverage_analysis.py``.
+
+    Same parsed input → same coverage items, regardless of who produced
+    the structured requirements (LLM or rule parser).
+    """
+    coverage_json = coverage_analysis.generate_coverage(parsed_struct)
+    return pipeline_fallback.coverage_dataframe(coverage_json, risk_df)
+
+
+def generate_test_cases(requirements_df: pd.DataFrame,
+                        risk_df: pd.DataFrame,
+                        coverage_df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    """Bridge the DataFrames into core/testcase_generator and back."""
+    cov_json = pipeline_fallback.coverage_df_to_engine_json(
+        coverage_df, requirements_df)
+    risk_json = pipeline_fallback.risk_df_to_engine_json(risk_df)
+    result = testcase_generator.generate_test_cases(cov_json, risk_json)
+    # FR 5.0 — synthesise a structured oracle for every case.
+    requirements_payload = [
+        {
+            "requirement_id": row["requirement_id"],
+            "feature": row.get("target_module", ""),
+            "expected_behavior": [row.get("expected_action", "")],
         }
-
-        technique = cov["coverage_strategy"]
-        text = req["raw_requirement"].lower()
-
-        if "create an order" in text or "successful order" in text or "reduce product stock" in text:
-            rows.extend(order_success_cases(base))
-        elif "exceeds available stock" in text or "stock" in text:
-            rows.extend(stock_boundary_cases(base))
-        elif "missing" in text or "empty" in text:
-            rows.extend(order_invalid_input_cases(base))
-        elif "status" in text:
-            rows.extend(order_status_cases(base))
-        elif "product" in text:
-            rows.extend(product_cases(base, text))
-        else:
-            rows.append(make_case(base, "General valid request", "valid input", "Send valid request", "Successful response"))
-
-    for idx, row in enumerate(rows, start=1):
-        row["test_case_id"] = f"TC-{idx:03d}"
-
-    columns = [
-        "test_case_id",
-        "requirement_id",
-        "target_module",
-        "risk_priority",
-        "testing_technique",
-        "coverage_item",
-        "precondition",
-        "test_data",
-        "steps",
-        "expected_result",
-        "traceability",
+        for _, row in requirements_df.iterrows()
     ]
-    return pd.DataFrame(rows)[columns]
+    oracle_mod.attach_oracles(result["test_cases"], requirements_payload)
+    df = pipeline_fallback.test_cases_json_to_df(result)
+    return df, result.get("summary", {})
 
 
-def make_case(base, title, test_data, steps, expected_result):
-    case = base.copy()
-    case.update({
-        "test_data": test_data,
-        "steps": steps,
-        "expected_result": expected_result,
-    })
-    return case
+def optimise_test_cases(test_cases_df: pd.DataFrame,
+                        risk_df: pd.DataFrame,
+                        minimize: bool) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    """Run prioritisation (always) + optional risk-based minimisation."""
+    cases = test_cases_df.to_dict(orient="records") if isinstance(
+        test_cases_df, pd.DataFrame) else test_cases_df
+    risk_json = pipeline_fallback.risk_df_to_engine_json(risk_df)
+    result = optimizer.optimize_test_suite(
+        {"test_cases": cases}, risk_json, minimize=minimize)
+    df = pipeline_fallback.test_cases_json_to_df(result)
+    return df, result.get("optimization_summary", {})
 
 
-def order_success_cases(base):
-    return [
-        make_case(
-            base,
-            "Create valid order",
-            '{"items":[{"product_id":1,"quantity":1}],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "POST /api/orders/create/ with valid product, quantity, and customer information.",
-            "Order is created with status 201 and product stock is reduced."
-        ),
-        make_case(
-            base,
-            "Create multi-item order",
-            '{"items":[{"product_id":1,"quantity":1},{"product_id":2,"quantity":1}],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "POST /api/orders/create/ with multiple valid products.",
-            "Order is created and stock is reduced for all ordered products."
-        ),
-    ]
+def export_results(requirements_df: pd.DataFrame,
+                   risk_df: pd.DataFrame,
+                   coverage_df: pd.DataFrame,
+                   test_cases_df: pd.DataFrame) -> Dict[str, str]:
+    """Delegate to [core/exporter.py](core/exporter.py)."""
+    return exporter.export_all(
+        requirements=requirements_df,
+        risk=risk_df,
+        coverage=coverage_df,
+        test_cases=test_cases_df,
+        output_dir=OUTPUT_DIR,
+    )
 
 
-def stock_boundary_cases(base):
-    return [
-        make_case(
-            base,
-            "Quantity equals available stock",
-            '{"items":[{"product_id":1,"quantity":5}],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "Set product stock to 5, then order quantity 5.",
-            "Order is created with status 201 and stock becomes 0."
-        ),
-        make_case(
-            base,
-            "Quantity exceeds available stock",
-            '{"items":[{"product_id":1,"quantity":6}],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "Set product stock to 5, then order quantity 6.",
-            "System returns 400 Bad Request with insufficient stock error."
-        ),
-        make_case(
-            base,
-            "Quantity is zero",
-            '{"items":[{"product_id":1,"quantity":0}],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "POST /api/orders/create/ with quantity 0.",
-            "System rejects the request with 400 Bad Request."
-        ),
-    ]
+# ===========================================================================
+# UI layer — a guided, single-direction pipeline.
+#
+# The workflow is a true pipeline: a step unlocks only once its upstream
+# step has produced output. The sidebar is a read-only progress tracker;
+# the user advances with explicit "Next" buttons and may step back to
+# review or redo an earlier stage. Editing an upstream artefact relocks
+# everything downstream so stale results can never leak forward.
+#
+# Every action gives feedback: long tasks (LLM calls, pytest runs) render
+# an st.status block; short tasks toast and show a result banner.
+# ===========================================================================
 
 
-def order_invalid_input_cases(base):
-    return [
-        make_case(
-            base,
-            "Empty items array",
-            '{"items":[],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "POST /api/orders/create/ with empty items array.",
-            "System returns 400 Bad Request."
-        ),
-        make_case(
-            base,
-            "Missing customer name",
-            '{"items":[{"product_id":1,"quantity":1}],"customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "POST /api/orders/create/ without customer_name.",
-            "System returns 400 Bad Request."
-        ),
-        make_case(
-            base,
-            "Invalid product ID",
-            '{"items":[{"product_id":99999,"quantity":1}],"customer_name":"John Doe","customer_phone":"1234567890","customer_address":"123 Main St"}',
-            "POST /api/orders/create/ with non-existing product_id.",
-            "System returns 400 Bad Request."
-        ),
-    ]
+def _invalidate_downstream(*keys: str) -> None:
+    """Drop cached downstream artefacts so they are regenerated on demand."""
+    for k in keys:
+        st.session_state.pop(k, None)
 
 
-def order_status_cases(base):
-    return [
-        make_case(
-            base,
-            "Update order status to completed",
-            '{"status":"completed"}',
-            "PATCH /api/orders/1/ with status completed.",
-            "Order status is updated successfully."
-        ),
-        make_case(
-            base,
-            "Update order status to invalid value",
-            '{"status":"unknown"}',
-            "PATCH /api/orders/1/ with invalid status.",
-            "System rejects the invalid status."
-        ),
-    ]
+# --- Step registry ---------------------------------------------------------
+
+STEPS: List[Dict[str, str]] = [
+    {"key": "input",    "title": "Requirement Input",  "fr": "FR 1.0"},
+    {"key": "parse",    "title": "Requirement Structuring", "fr": "FR 1.1"},
+    {"key": "risk",     "title": "Risk Analysis",      "fr": "FR 2.0"},
+    {"key": "coverage", "title": "Coverage Items",     "fr": "FR 3.0 prep"},
+    {"key": "cases",    "title": "Test Cases",         "fr": "FR 3.0 / 4.0 / 5.0"},
+    {"key": "optimize", "title": "Optimisation",       "fr": "FR 7.0"},
+    {"key": "export",   "title": "Export",             "fr": "FR 6.0"},
+    {"key": "run",      "title": "Run Tests",          "fr": "Execution"},
+]
+N_STEPS = len(STEPS)
 
 
-def product_cases(base, text):
-    if "display" in text or "view" in text:
-        return [
-            make_case(
-                base,
-                "Get all products",
-                "No request body",
-                "GET /api/products/",
-                "System returns product list with id, name, description, price, and stock."
-            ),
-            make_case(
-                base,
-                "Get product details by valid ID",
-                "product_id = 1",
-                "GET /api/products/1/",
-                "System returns selected product details."
-            ),
-            make_case(
-                base,
-                "Get product details by invalid ID",
-                "product_id = 99999",
-                "GET /api/products/99999/",
-                "System returns 404 Not Found."
-            ),
-        ]
+# --- Session bootstrap ------------------------------------------------------
 
-    return [
-        make_case(
-            base,
-            "Create or update product with valid data",
-            '{"name":"New Product","description":"Product description","price":"39.99","stock":50}',
-            "Send valid product management request.",
-            "System saves product data successfully."
-        ),
-        make_case(
-            base,
-            "Product with invalid price",
-            '{"name":"New Product","description":"Product description","price":"-1","stock":50}',
-            "Send product request with negative price.",
-            "System rejects invalid product data."
-        ),
-    ]
-
-
-def export_results(requirements_df, risk_df, coverage_df, test_cases_df):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    paths = {
-        "structured_requirements_csv": os.path.join(OUTPUT_DIR, f"structured_requirements_{timestamp}.csv"),
-        "risk_analysis_csv": os.path.join(OUTPUT_DIR, f"risk_analysis_{timestamp}.csv"),
-        "coverage_items_csv": os.path.join(OUTPUT_DIR, f"coverage_items_{timestamp}.csv"),
-        "test_cases_csv": os.path.join(OUTPUT_DIR, f"test_cases_{timestamp}.csv"),
-        "test_cases_json": os.path.join(OUTPUT_DIR, f"test_cases_{timestamp}.json"),
-        "excel": os.path.join(OUTPUT_DIR, f"AutoTestDesign_Output_{timestamp}.xlsx"),
+def _init_state() -> None:
+    defaults = {
+        "stage": 0,                       # highest unlocked step index
+        "current": 0,                     # step the user is viewing
+        "raw_requirements": SAMPLE_REQUIREMENTS,
     }
-
-    requirements_df.to_csv(paths["structured_requirements_csv"], index=False, encoding="utf-8-sig")
-    risk_df.to_csv(paths["risk_analysis_csv"], index=False, encoding="utf-8-sig")
-    coverage_df.to_csv(paths["coverage_items_csv"], index=False, encoding="utf-8-sig")
-    test_cases_df.to_csv(paths["test_cases_csv"], index=False, encoding="utf-8-sig")
-
-    with open(paths["test_cases_json"], "w", encoding="utf-8") as f:
-        json.dump(test_cases_df.to_dict(orient="records"), f, indent=2, ensure_ascii=False)
-
-    with pd.ExcelWriter(paths["excel"], engine="openpyxl") as writer:
-        requirements_df.to_excel(writer, sheet_name="Requirements", index=False)
-        risk_df.to_excel(writer, sheet_name="Risk Analysis", index=False)
-        coverage_df.to_excel(writer, sheet_name="Coverage Items", index=False)
-        test_cases_df.to_excel(writer, sheet_name="Test Cases", index=False)
-
-    return paths
+    for k, v in defaults.items():
+        st.session_state.setdefault(k, v)
 
 
-st.set_page_config(page_title="AutoTestDesign Tool", layout="wide")
+def _unlock(step_index: int) -> None:
+    """Mark a step as completed, unlocking the next one."""
+    st.session_state.stage = max(st.session_state.stage, step_index + 1)
 
-st.title("AI-driven AutoTestDesign Tool")
-st.caption("Requirement Analysis → Risk Analysis → Coverage Design → Test Case Generation → Human Review → Export")
 
-st.sidebar.header("Workflow")
-page = st.sidebar.radio(
-    "Choose step",
-    [
-        "1. Requirement Input",
-        "2. Requirement Structuring",
-        "3. Risk Analysis",
-        "4. Coverage Items",
-        "5. Test Cases",
-        "6. Export",
-        "7. Evidence Checklist",
-    ]
-)
+def _relock_after(step_index: int, *artefact_keys: str) -> None:
+    """An upstream edit invalidates everything downstream.
 
-if "raw_requirements" not in st.session_state:
-    st.session_state.raw_requirements = SAMPLE_REQUIREMENTS
+    Drops the cached artefacts and rolls the unlocked frontier back to
+    the edited step so the user must walk forward again.
+    """
+    _invalidate_downstream(*artefact_keys)
+    st.session_state.stage = min(st.session_state.stage, step_index + 1)
 
-if page == "1. Requirement Input":
-    st.header("1. Requirement Input")
-    st.write("Target Application: Mini-E-Commerce-System")
-    st.write("Main modules: Product Management, Order Processing, Stock Management, Order Status Management.")
 
-    use_sample = st.checkbox("Use built-in Mini-E-Commerce-System sample requirements", value=True)
+def _goto(step_index: int) -> None:
+    st.session_state.current = step_index
 
-    if use_sample:
-        st.session_state.raw_requirements = SAMPLE_REQUIREMENTS
 
-    uploaded = st.file_uploader("Upload CSV with requirements", type=["csv"])
-    if uploaded is not None:
-        uploaded_df = pd.read_csv(uploaded)
-        if "raw_requirement" in uploaded_df.columns:
-            lines = []
-            for i, row in uploaded_df.iterrows():
-                req_id = row.get("requirement_id", f"REQ-{i + 1:03d}")
-                lines.append(f"{req_id}: {row['raw_requirement']}")
-            st.session_state.raw_requirements = "\n".join(lines)
+# --- Sidebar: read-only progress tracker -----------------------------------
+
+def _render_sidebar() -> None:
+    st.sidebar.title("AutoTestDesign")
+    st.sidebar.caption("AI-driven test design pipeline")
+
+    st.sidebar.divider()
+    st.sidebar.subheader("Progress")
+    for i, step in enumerate(STEPS):
+        if i < st.session_state.stage:
+            icon = "✅"
+        elif i == st.session_state.current:
+            icon = "▶️"
+        elif i <= st.session_state.stage:
+            icon = "🔓"
+        else:
+            icon = "🔒"
+        marker = "**" if i == st.session_state.current else ""
+        st.sidebar.write(
+            f"{icon} {marker}{i + 1}. {step['title']}{marker}")
+
+    st.sidebar.divider()
+    st.sidebar.subheader("Engine status")
+    key_ok = _has_llm_key()
+    st.sidebar.write(f"API key: {'✅' if key_ok else '⚠️'}")
+    st.sidebar.write(f"LLM SDK: {'✅' if _LLM_AVAILABLE else '⚠️'}")
+    if key_ok and _LLM_AVAILABLE:
+        st.sidebar.caption("LLM path active.")
+    else:
+        st.sidebar.caption("Rule fallback active (deterministic).")
+    for label, skey in (("Parser", "requirements_source"),
+                        ("Risk", "risk_source")):
+        if skey in st.session_state:
+            st.sidebar.caption(f"{label}: {st.session_state[skey]}")
+
+    st.sidebar.divider()
+    st.sidebar.subheader("Target backend")
+    st.session_state.backend_url = st.sidebar.text_input(
+        "Backend URL",
+        value=st.session_state.get(
+            "backend_url",
+            os.getenv("BACKEND_BASE_URL", test_runner.DEFAULT_BACKEND_URL)),
+        label_visibility="collapsed",
+    )
+    probe = _cached_probe(st.session_state.backend_url)
+    if probe["alive"]:
+        st.sidebar.success(f"Reachable (HTTP {probe['status_code']})")
+    else:
+        st.sidebar.warning("Not reachable — needed only for Step 8.")
+
+
+@st.cache_data(ttl=3, show_spinner=False)
+def _cached_probe(url: str) -> Dict[str, Any]:
+    return test_runner.probe_backend(url)
+
+
+# --- Shared navigation footer ----------------------------------------------
+
+def _nav_footer(step_index: int, *, can_advance: bool,
+                advance_label: str = "Next step →") -> None:
+    """Render Back / Next controls, anchored to the bottom-right."""
+    st.divider()
+    # The wide first column is an empty spacer that pushes the two
+    # buttons to the bottom-right corner.
+    _, back_col, next_col = st.columns([6, 1.4, 1.4])
+    if step_index > 0:
+        if back_col.button("← Back", key=f"back_{step_index}",
+                           width="stretch"):
+            _goto(step_index - 1)
+            st.rerun()
+    if step_index < N_STEPS - 1:
+        if can_advance:
+            if next_col.button(advance_label, key=f"next_{step_index}",
+                               type="primary", width="stretch"):
+                _unlock(step_index)
+                _goto(step_index + 1)
+                st.rerun()
+        else:
+            next_col.button(advance_label, key=f"next_{step_index}",
+                            disabled=True, width="stretch",
+                            help="Complete this step to continue.")
+
+
+def _step_header(step_index: int) -> None:
+    step = STEPS[step_index]
+    st.subheader(f"Step {step_index + 1} / {N_STEPS} — {step['title']}")
+    st.caption(step["fr"])
+
+
+# ===========================================================================
+# Step 1 — Requirement Input
+# ===========================================================================
+
+def step_input(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Provide the requirements of the **target application** "
+        "(Mini-E-Commerce backend). Load the built-in sample or upload a "
+        "CSV, then edit the text directly if needed. This text is the input "
+        "to the parser.")
+
+    src = st.radio(
+        "Requirement source",
+        ["Built-in Mini-E-Commerce sample", "Upload a CSV"],
+        horizontal=True,
+        key="req_source_choice",
+    )
+
+    if src == "Built-in Mini-E-Commerce sample":
+        if st.button("Load sample requirements"):
+            st.session_state.raw_requirements = SAMPLE_REQUIREMENTS
+            _relock_after(idx, "requirements_df", "parsed_struct", "risk_df",
+                          "coverage_df", "test_cases_df", "test_cases_summary",
+                          "optimized_df", "optimization_summary",
+                          "test_run_summary")
+            st.toast("Sample requirements loaded.")
+    else:  # Upload a CSV
+        up = st.file_uploader(
+            "CSV with a 'raw_requirement' column (optional 'requirement_id')",
+            type=["csv"])
+        if up is not None:
+            df = pd.read_csv(up)
+            if "raw_requirement" not in df.columns:
+                st.error("CSV must contain a 'raw_requirement' column.")
+            else:
+                lines = []
+                for i, row in df.iterrows():
+                    rid = row.get("requirement_id", f"REQ-{i + 1:03d}")
+                    lines.append(f"{rid}: {row['raw_requirement']}")
+                st.session_state.raw_requirements = "\n".join(lines)
+                _relock_after(idx, "requirements_df", "parsed_struct",
+                              "risk_df", "coverage_df", "test_cases_df",
+                              "test_cases_summary", "optimized_df",
+                              "optimization_summary", "test_run_summary")
+                st.success(f"Loaded {len(lines)} requirements from CSV.")
 
     st.session_state.raw_requirements = st.text_area(
-        "Requirement text",
+        "Requirement text (editable)",
         value=st.session_state.raw_requirements,
-        height=300
+        height=280,
+        help="Edit directly here regardless of the source chosen above.",
     )
 
-    if st.button("Parse Requirements"):
-        st.session_state.requirements_df = parse_requirements(st.session_state.raw_requirements)
-        st.success("Requirements parsed. Go to Step 2.")
+    n_lines = len([ln for ln in st.session_state.raw_requirements.splitlines()
+                   if ln.strip()])
+    st.caption(f"{n_lines} non-empty requirement line(s) ready.")
 
-elif page == "2. Requirement Structuring":
-    st.header("2. Requirement Structuring")
-    if "requirements_df" not in st.session_state:
-        st.session_state.requirements_df = parse_requirements(st.session_state.raw_requirements)
+    _nav_footer(idx, can_advance=n_lines > 0,
+                advance_label="Confirm & continue →")
 
-    st.write("You can review and revise structured requirements here.")
-    st.session_state.requirements_df = st.data_editor(
-        st.session_state.requirements_df,
-        use_container_width=True,
-        num_rows="dynamic"
-    )
 
-elif page == "3. Risk Analysis":
-    st.header("3. Risk Analysis and Prioritization")
-    if "requirements_df" not in st.session_state:
-        st.session_state.requirements_df = parse_requirements(st.session_state.raw_requirements)
+# ===========================================================================
+# Step 2 — Requirement Structuring
+# ===========================================================================
 
-    if st.button("Generate Risk Analysis"):
-        st.session_state.risk_df = analyze_risk(st.session_state.requirements_df)
+def step_parse(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Parse the text into structured requirements. The LLM parser runs "
+        "if configured, otherwise a deterministic rule parser is used.")
 
-    if "risk_df" not in st.session_state:
-        st.session_state.risk_df = analyze_risk(st.session_state.requirements_df)
+    if st.button("Parse requirements", type="primary"):
+        _relock_after(idx, "requirements_df", "parsed_struct", "risk_df",
+                      "coverage_df", "test_cases_df", "test_cases_summary",
+                      "optimized_df", "optimization_summary",
+                      "test_run_summary")
+        with st.status("Parsing requirements…", expanded=True) as status:
+            st.write("Sending requirement text to the parser.")
+            df, parsed, source = parse_with_fallback(
+                st.session_state.raw_requirements)
+            st.session_state.requirements_df = df
+            st.session_state.parsed_struct = parsed
+            st.session_state.requirements_source = source
+            st.write(f"Parsed {len(df)} requirements via the {source} path.")
+            status.update(label=f"Parsed {len(df)} requirements ({source}).",
+                          state="complete")
 
-    st.write("You can manually adjust risk score and priority.")
-    st.session_state.risk_df = st.data_editor(
-        st.session_state.risk_df,
-        use_container_width=True,
-        num_rows="dynamic"
-    )
-
-elif page == "4. Coverage Items":
-    st.header("4. Coverage Item Identification and Strategy")
-    if "requirements_df" not in st.session_state:
-        st.session_state.requirements_df = parse_requirements(st.session_state.raw_requirements)
-    if "risk_df" not in st.session_state:
-        st.session_state.risk_df = analyze_risk(st.session_state.requirements_df)
-
-    if st.button("Generate Coverage Items"):
-        st.session_state.coverage_df = generate_coverage_items(
+    if "requirements_df" in st.session_state:
+        st.success(
+            f"{len(st.session_state.requirements_df)} structured requirements "
+            f"(source: {st.session_state.get('requirements_source', '?')}). "
+            "Review or edit below.")
+        edited = st.data_editor(
             st.session_state.requirements_df,
-            st.session_state.risk_df
-        )
+            width="stretch", num_rows="dynamic", key="req_editor")
+        if not edited.equals(st.session_state.requirements_df):
+            st.session_state.requirements_df = edited
+            _relock_after(idx, "risk_df", "coverage_df", "test_cases_df",
+                          "test_cases_summary", "optimized_df",
+                          "optimization_summary", "test_run_summary")
+            st.toast("Edited — downstream steps will regenerate.")
+        _nav_footer(idx, can_advance=True)
+    else:
+        _nav_footer(idx, can_advance=False)
 
-    if "coverage_df" not in st.session_state:
-        st.session_state.coverage_df = generate_coverage_items(
-            st.session_state.requirements_df,
-            st.session_state.risk_df
-        )
 
-    st.write("This section supports human-in-the-loop review. You can revise coverage items and strategies.")
-    st.session_state.coverage_df = st.data_editor(
-        st.session_state.coverage_df,
-        use_container_width=True,
-        num_rows="dynamic"
-    )
+# ===========================================================================
+# Step 3 — Risk Analysis
+# ===========================================================================
 
-elif page == "5. Test Cases":
-    st.header("5. Test Cases and Traceability")
-    if "requirements_df" not in st.session_state:
-        st.session_state.requirements_df = parse_requirements(st.session_state.raw_requirements)
-    if "risk_df" not in st.session_state:
-        st.session_state.risk_df = analyze_risk(st.session_state.requirements_df)
-    if "coverage_df" not in st.session_state:
-        st.session_state.coverage_df = generate_coverage_items(
-            st.session_state.requirements_df,
-            st.session_state.risk_df
-        )
+def step_risk(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Score each requirement (1–10) on four risk dimensions and map it "
+        "to a priority. Higher risk earns deeper coverage downstream.")
 
-    if st.button("Generate / Regenerate Test Cases"):
-        st.session_state.test_cases_df = generate_test_cases(
-            st.session_state.requirements_df,
-            st.session_state.risk_df,
-            st.session_state.coverage_df
-        )
+    if st.button("Generate risk analysis", type="primary"):
+        with st.status("Analysing risk…", expanded=True) as status:
+            st.write("Scoring requirements.")
+            df, source = analyse_risk_with_fallback(
+                st.session_state.requirements_df)
+            st.session_state.risk_df = df
+            st.session_state.risk_source = source
+            _relock_after(idx, "coverage_df", "test_cases_df",
+                          "test_cases_summary", "optimized_df",
+                          "optimization_summary", "test_run_summary")
+            status.update(label=f"Risk scored for {len(df)} requirements "
+                          f"({source}).", state="complete")
 
-    if "test_cases_df" not in st.session_state:
-        st.session_state.test_cases_df = generate_test_cases(
-            st.session_state.requirements_df,
-            st.session_state.risk_df,
-            st.session_state.coverage_df
-        )
+    if "risk_df" in st.session_state:
+        rdf = st.session_state.risk_df
+        levels = rdf["risk_level"].value_counts().to_dict() \
+            if "risk_level" in rdf.columns else {}
+        c1, c2, c3 = st.columns(3)
+        c1.metric("High", levels.get("High", 0))
+        c2.metric("Medium", levels.get("Medium", 0))
+        c3.metric("Low", levels.get("Low", 0))
+        st.caption("Adjust scores or levels manually if you disagree.")
+        edited = st.data_editor(
+            rdf, width="stretch", num_rows="dynamic", key="risk_editor")
+        if not edited.equals(rdf):
+            st.session_state.risk_df = edited
+            _relock_after(idx, "coverage_df", "test_cases_df",
+                          "test_cases_summary", "optimized_df",
+                          "optimization_summary", "test_run_summary")
+            st.toast("Edited — downstream steps will regenerate.")
+        _nav_footer(idx, can_advance=True)
+    else:
+        _nav_footer(idx, can_advance=False)
 
-    st.write("You can revise generated test cases before export.")
-    st.session_state.test_cases_df = st.data_editor(
-        st.session_state.test_cases_df,
-        use_container_width=True,
-        num_rows="dynamic"
-    )
 
-elif page == "6. Export":
-    st.header("6. Export Test Artifacts")
-    if "requirements_df" not in st.session_state:
-        st.session_state.requirements_df = parse_requirements(st.session_state.raw_requirements)
-    if "risk_df" not in st.session_state:
-        st.session_state.risk_df = analyze_risk(st.session_state.requirements_df)
-    if "coverage_df" not in st.session_state:
-        st.session_state.coverage_df = generate_coverage_items(
-            st.session_state.requirements_df,
-            st.session_state.risk_df
-        )
-    if "test_cases_df" not in st.session_state:
-        st.session_state.test_cases_df = generate_test_cases(
-            st.session_state.requirements_df,
-            st.session_state.risk_df,
-            st.session_state.coverage_df
-        )
+# ===========================================================================
+# Step 4 — Coverage Items
+# ===========================================================================
 
-    if st.button("Export CSV / JSON / Excel"):
-        paths = export_results(
-            st.session_state.requirements_df,
-            st.session_state.risk_df,
-            st.session_state.coverage_df,
-            st.session_state.test_cases_df
-        )
-        st.success("Export completed.")
-        for name, path in paths.items():
-            st.write(f"{name}: `{path}`")
+def step_coverage(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Expand each requirement's constraints into coverage items "
+        "(positive / negative / boundary). This is the key interactive-review "
+        "point — edits here reshape the generated test cases.")
 
-elif page == "7. Evidence Checklist":
-    st.header("7. Evidence Checklist for Report and Presentation")
-    st.write("Take screenshots of the following pages for your final report and PPT:")
+    if st.button("Generate coverage items", type="primary"):
+        with st.status("Generating coverage items…") as status:
+            st.session_state.coverage_df = generate_coverage(
+                st.session_state.parsed_struct, st.session_state.risk_df)
+            _relock_after(idx, "test_cases_df", "test_cases_summary",
+                          "optimized_df", "optimization_summary",
+                          "test_run_summary")
+            status.update(
+                label=f"{len(st.session_state.coverage_df)} coverage items "
+                "generated.", state="complete")
 
-    checklist = pd.DataFrame([
-        {"Evidence": "Requirement Input page", "Purpose": "Proves FR 1.0 input/parsing"},
-        {"Evidence": "Structured Requirements table", "Purpose": "Proves FR 1.1 requirement structuring"},
-        {"Evidence": "Risk Analysis table", "Purpose": "Proves FR 2.0 risk scoring and prioritization"},
-        {"Evidence": "Coverage Items table", "Purpose": "Proves coverage item identification and strategy selection"},
-        {"Evidence": "Test Cases table", "Purpose": "Proves FR 3.0 black-box test generation"},
-        {"Evidence": "Editable st.data_editor tables", "Purpose": "Proves human-in-the-loop interactive review"},
-        {"Evidence": "Export output files", "Purpose": "Proves FR 6.0 export capability"},
-        {"Evidence": "Excel output with multiple sheets", "Purpose": "Proves structured test artifact generation"},
-    ])
+    if "coverage_df" in st.session_state:
+        st.success(
+            f"{len(st.session_state.coverage_df)} coverage items. "
+            "Edit, add or remove items below.")
+        edited = st.data_editor(
+            st.session_state.coverage_df, width="stretch",
+            num_rows="dynamic", key="cov_editor")
+        if not edited.equals(st.session_state.coverage_df):
+            st.session_state.coverage_df = edited
+            _relock_after(idx, "test_cases_df", "test_cases_summary",
+                          "optimized_df", "optimization_summary",
+                          "test_run_summary")
+            st.toast("Edited — test cases will regenerate.")
+        _nav_footer(idx, can_advance=True)
+    else:
+        _nav_footer(idx, can_advance=False)
 
-    st.dataframe(checklist, use_container_width=True)
+
+# ===========================================================================
+# Step 5 — Test Cases (+ white-box state coverage)
+# ===========================================================================
+
+_STATE_STRATEGIES = {
+    "All states": "all_states",
+    "All valid transitions": "all_transitions",
+    "All transitions + invalid guards": "all_transitions+guards",
+}
+
+
+def step_cases(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Generate black-box test cases (EP / BVA / DT) with an attached "
+        "oracle, then optionally append white-box state-transition cases.")
+
+    if st.button("Generate test cases", type="primary"):
+        with st.status("Generating test cases…") as status:
+            df, summary = generate_test_cases(
+                st.session_state.requirements_df,
+                st.session_state.risk_df,
+                st.session_state.coverage_df)
+            st.session_state.test_cases_df = df
+            st.session_state.test_cases_summary = summary
+            _relock_after(idx, "optimized_df", "optimization_summary",
+                          "test_run_summary")
+            status.update(label=f"{summary.get('total', 0)} test cases "
+                          "generated.", state="complete")
+
+    if "test_cases_df" in st.session_state:
+        summary = st.session_state.get("test_cases_summary", {})
+        tcdf = st.session_state.test_cases_df
+        oracled = int(tcdf["oracle"].notna().sum()) \
+            if "oracle" in tcdf.columns else 0
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total", summary.get("total", 0))
+        c2.metric("Techniques", len(summary.get("by_technique", {})))
+        c3.metric("Priorities", len(summary.get("by_priority", {})))
+        c4.metric("With oracle", oracled)
+        with st.expander("Summary detail"):
+            st.json(summary)
+
+        edited = st.data_editor(
+            tcdf, width="stretch", num_rows="dynamic", key="tc_editor")
+        if not edited.equals(tcdf):
+            st.session_state.test_cases_df = edited
+            _relock_after(idx, "optimized_df", "optimization_summary",
+                          "test_run_summary")
+            st.toast("Edited — optimisation result cleared.")
+
+        st.divider()
+        st.markdown("**White-box state-transition coverage (FR 4.0)**")
+        st.caption(
+            "Append cases derived from the order status state machine "
+            "(`pending → completed / cancelled`). Select a coverage "
+            "criterion and click *Generate & append* to add new cases "
+            "to the test-case table above.")
+        cs = st.columns([2, 1])
+        label = cs[0].selectbox(
+            "Coverage criterion", list(_STATE_STRATEGIES.keys()), index=2)
+        if cs[1].button("Generate & append"):
+            with st.status("Generating state-coverage cases…") as status:
+                model = state_model_mod.load_default_order_model()
+                res = state_model_mod.generate_state_test_cases(
+                    model, strategy=_STATE_STRATEGIES[label])
+                sdf = pd.DataFrame(res["test_cases"])
+                # Replace any previously appended state-transition cases for
+                # this model rather than skipping on a test_case_id clash:
+                # different criteria reuse the same S-prefixed ids, so a plain
+                # "already present" filter would silently no-op when switching
+                # criterion. Drop the old ST cases, then append the new set.
+                current = st.session_state.test_cases_df
+                kept = current[
+                    current.get("test_design_technique",
+                                pd.Series(dtype=str))
+                    != state_model_mod.TECHNIQUE]
+                st.session_state.test_cases_df = pd.concat(
+                    [kept, sdf], ignore_index=True)
+                _relock_after(idx, "optimized_df", "optimization_summary",
+                              "test_run_summary")
+                status.update(
+                    label=f"Set {len(sdf)} state-coverage cases "
+                          f"(«{label}»).", state="complete")
+            st.rerun()
+
+        with st.expander(f"Edges covered by «{label}»"):
+            model = state_model_mod.load_default_order_model()
+            strategy = _STATE_STRATEGIES[label]
+            # Show exactly the edges that the selected criterion exercises:
+            #   all_states / all_transitions  -> the valid edges only
+            #   all_transitions+guards        -> valid edges plus the
+            #                                    declared invalid guards
+            if strategy == "all_transitions+guards":
+                edges = list(model.transitions)
+            else:
+                edges = [t for t in model.transitions if t.valid]
+            st.write(f"Initial: `{model.initial}` · "
+                     f"States: {', '.join(model.states)} · "
+                     f"Terminal: {', '.join(model.terminal)}")
+            st.dataframe(pd.DataFrame([
+                {"source": t.source, "event": t.event, "target": t.target,
+                 "valid": "✅" if t.valid else "❌"}
+                for t in edges
+            ]), width="stretch", hide_index=True)
+
+        _nav_footer(idx, can_advance=True)
+    else:
+        _nav_footer(idx, can_advance=False)
+
+
+# ===========================================================================
+# Step 6 — Optimisation
+# ===========================================================================
+
+def step_optimize(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Prioritise the suite by risk and technique, and optionally minimise "
+        "it — removing redundancy while keeping every requirement covered.")
+
+    cols = st.columns(2)
+    if cols[0].button("Prioritise", type="primary"):
+        with st.status("Prioritising…") as status:
+            df, summary = optimise_test_cases(
+                st.session_state.test_cases_df, st.session_state.risk_df,
+                minimize=False)
+            st.session_state.optimized_df = df
+            st.session_state.optimization_summary = summary
+            st.session_state.pop("test_run_summary", None)
+            status.update(label="Prioritised.", state="complete")
+    if cols[1].button("Minimise (risk-based)"):
+        with st.status("Minimising…") as status:
+            df, summary = optimise_test_cases(
+                st.session_state.test_cases_df, st.session_state.risk_df,
+                minimize=True)
+            st.session_state.optimized_df = df
+            st.session_state.optimization_summary = summary
+            st.session_state.pop("test_run_summary", None)
+            status.update(label="Minimised.", state="complete")
+
+    summary = st.session_state.get("optimization_summary")
+    if summary:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Original", summary.get("original_count", 0))
+        c2.metric("Optimised", summary.get("optimized_count", 0))
+        c3.metric("Removed", summary.get("removed_count", 0))
+        c4.metric("Strategy", summary.get("strategy", "-"))
+
+        before = st.session_state.test_cases_df
+        after = st.session_state.optimized_df
+        if "test_design_technique" in before.columns:
+            chart = pd.DataFrame({
+                "Original": before["test_design_technique"].value_counts(),
+                "Optimised": after["test_design_technique"].value_counts(),
+            }).fillna(0)
+            st.bar_chart(chart)
+        st.dataframe(after, width="stretch")
+
+    # Optimisation is optional — the user can always advance.
+    _nav_footer(idx, can_advance=True)
+
+
+# ===========================================================================
+# Step 7 — Export
+# ===========================================================================
+
+def step_export(idx: int) -> None:
+    _step_header(idx)
+    st.write("Export the suite to CSV, JSON and a multi-sheet Excel workbook.")
+
+    use_opt = False
+    if st.session_state.get("optimized_df") is not None:
+        use_opt = st.checkbox("Export the optimised set", value=True)
+
+    if st.button("Export CSV / JSON / Excel", type="primary"):
+        with st.status("Writing artefacts…") as status:
+            cases = (st.session_state.optimized_df if use_opt
+                     else st.session_state.test_cases_df)
+            paths = export_results(
+                st.session_state.requirements_df, st.session_state.risk_df,
+                st.session_state.coverage_df, cases)
+            st.session_state.export_paths = paths
+            status.update(label="Export complete.", state="complete")
+
+    if "export_paths" in st.session_state:
+        st.success("Artefacts written to outputs/.")
+        for name, path in st.session_state.export_paths.items():
+            st.write(f"- **{name}**: `{path}`")
+        _nav_footer(idx, can_advance=True)
+    else:
+        _nav_footer(idx, can_advance=False)
+
+
+# ===========================================================================
+# Step 8 — Run Tests
+# ===========================================================================
+
+def _event_sequence_fingerprint(tc: Dict[str, Any]) -> str:
+    """Event-sequence signature of a state-transition case (empty for
+    black-box cases). Mirrors the harness dedup so the UI count matches
+    the number of HTTP checks actually executed."""
+    data = tc.get("test_data")
+    if isinstance(data, str) and data.strip():
+        import ast
+        try:
+            data = ast.literal_eval(data)
+        except (ValueError, SyntaxError):
+            data = {}
+    if isinstance(data, dict):
+        seq = data.get("event_sequence")
+        if isinstance(seq, (list, tuple)):
+            return ">".join(str(e) for e in seq)
+    return ""
+
+
+def _count_executable(cases: List[Dict[str, Any]]) -> int:
+    """Number of HTTP checks the harness will run: one representative per
+    unique (requirement_id, coverage_type, event_sequence) key (matches
+    the dedup the data-driven harness applies before execution)."""
+    seen = set()
+    for c in cases:
+        seen.add((str(c.get("requirement_id", "")),
+                  str(c.get("coverage_type", "")).lower(),
+                  _event_sequence_fingerprint(c)))
+    return len(seen)
+
+
+def step_run(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Execute the test cases against the live backend through pytest and "
+        "view a per-case pass / fail report.")
+
+    source = st.radio(
+        "Test cases source",
+        ["Generated (current session)", "Optimised (current session)",
+         "Baseline (data/baseline)"],
+        index=0, horizontal=True)
+
+    if source == "Optimised (current session)":
+        cases = (st.session_state.optimized_df.to_dict(orient="records")
+                 if st.session_state.get("optimized_df") is not None else [])
+        if not cases:
+            st.info("No optimised set yet — run Step 6 or pick another source.")
+    elif source == "Baseline (data/baseline)":
+        try:
+            with open("data/baseline/test_cases.json", encoding="utf-8") as f:
+                cases = json.load(f).get("test_cases", [])
+        except FileNotFoundError:
+            st.error("Baseline file not found.")
+            cases = []
+    else:
+        cases = st.session_state.test_cases_df.to_dict(orient="records")
+
+    probe = _cached_probe(st.session_state.backend_url)
+    if not probe["alive"]:
+        st.warning(
+            "Backend not reachable. Start it and refresh — see the sidebar.")
+
+    if cases:
+        executable = _count_executable(cases)
+        st.caption(
+            f"{len(cases)} generated · {executable} will execute → "
+            f"{st.session_state.backend_url}")
+        if executable < len(cases):
+            st.info(
+                f"ℹ️ {len(cases)} cases collapse to {executable} HTTP "
+                "checks. The harness runs **one representative per "
+                "(requirement × coverage type)**: many generated cases "
+                "share the same requirement and type (e.g. five separate "
+                "'valid field' positives for one create-product request), "
+                "so executing each once avoids identical, redundant "
+                "requests. Every case still appears in the export and the "
+                "traceability matrix — only the live HTTP execution is "
+                "deduplicated.")
+    if st.button("▶ Run data-driven tests", type="primary",
+                 disabled=not cases or not probe["alive"]):
+        with st.status("Running pytest against the backend…",
+                       expanded=True) as status:
+            st.write("Spawning pytest subprocess.")
+            summary = test_runner.run_data_driven_tests(
+                test_cases=cases, backend_url=st.session_state.backend_url)
+            st.session_state.test_run_summary = summary
+            status.update(
+                label=f"Done — {summary.passed} passed, {summary.failed} "
+                f"failed, {summary.skipped} skipped.",
+                state="complete" if summary.is_clean() else "error")
+
+    summary = st.session_state.get("test_run_summary")
+    if summary:
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Total", summary.total)
+        c2.metric("Passed", summary.passed)
+        c3.metric("Failed", summary.failed)
+        c4.metric("Skipped", summary.skipped)
+        c5.metric("Seconds", round(summary.duration_seconds, 2))
+        if summary.is_clean() and summary.total:
+            st.success("All executed cases passed against the backend.")
+        elif summary.failed:
+            st.warning(f"{summary.failed} case(s) failed — see below.")
+        if summary.results:
+            st.dataframe(pd.DataFrame([r.as_row() for r in summary.results]),
+                         width="stretch", hide_index=True)
+            for r in summary.results:
+                if r.outcome in ("failed", "error"):
+                    with st.expander(f"❌ {r.test_case_id} — {r.coverage_type}"):
+                        st.code(r.message or "(no message)")
+        with st.expander("Raw pytest output"):
+            st.code(summary.raw_output or "(empty)")
+
+    _nav_footer(idx, can_advance=False)
+    st.divider()
+    if st.button("↺ Start a new run (reset pipeline)"):
+        for k in list(st.session_state.keys()):
+            if k not in ("backend_url",):
+                del st.session_state[k]
+        st.rerun()
+
+
+# ===========================================================================
+# Router
+# ===========================================================================
+
+_RENDERERS = [step_input, step_parse, step_risk, step_coverage,
+              step_cases, step_optimize, step_export, step_run]
+
+
+def main() -> None:
+    _init_state()
+    _render_sidebar()
+
+    st.title("AI-driven AutoTestDesign Tool")
+    st.caption(
+        "Requirements → Risk → Coverage → Test Cases → Optimise → Export → Run")
+    st.divider()
+
+    if st.session_state.current > st.session_state.stage:
+        st.session_state.current = st.session_state.stage
+
+    _RENDERERS[st.session_state.current](st.session_state.current)
+
+
+st.set_page_config(page_title="AutoTestDesign", layout="wide")
+main()

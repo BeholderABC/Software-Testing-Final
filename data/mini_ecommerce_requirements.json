@@ -1,0 +1,170 @@
+{
+  "_meta": {
+    "name": "Mini-E-Commerce-System backend requirements",
+    "version": "v1",
+    "target_app": "target_app/Mini-E-Commerce-System/Backend",
+    "owner": "AutoTestDesign team",
+    "notes": "Canonical requirement dataset used by Streamlit (default sample) and by the data-driven PyTest harness. Aligned with docs/STYLE_GUIDE.md schema v1."
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-001",
+      "feature": "Product catalogue listing",
+      "inputs": [],
+      "constraints": [
+        { "field": "products", "type": "existence" }
+      ],
+      "conditions": ["client requests /api/products/"],
+      "expected_behavior": [
+        "system returns 200 with a JSON list of products containing name, description, price, stock"
+      ]
+    },
+    {
+      "requirement_id": "REQ-002",
+      "feature": "Product detail by id",
+      "inputs": ["product_id"],
+      "constraints": [
+        { "field": "product_id", "type": "existence" }
+      ],
+      "conditions": ["client requests /api/products/<id>/"],
+      "expected_behavior": [
+        "system returns 200 with the product detail when product_id exists",
+        "system returns 404 when product_id does not exist"
+      ]
+    },
+    {
+      "requirement_id": "REQ-003",
+      "feature": "Admin creates a product",
+      "inputs": ["name", "description", "price", "stock"],
+      "constraints": [
+        { "field": "name", "type": "required" },
+        { "field": "description", "type": "required" },
+        { "field": "price", "type": "numeric_range", "min": 0 },
+        { "field": "stock", "type": "numeric_range", "min": 0 }
+      ],
+      "conditions": ["admin posts to /api/products/create/"],
+      "expected_behavior": [
+        "system returns 201 with the saved product when payload is valid"
+      ]
+    },
+    {
+      "requirement_id": "REQ-004",
+      "feature": "Admin updates a product",
+      "inputs": ["product_id", "name", "description", "price", "stock"],
+      "constraints": [
+        { "field": "product_id", "type": "existence" }
+      ],
+      "conditions": ["admin PATCH/PUT /api/products/<id>/"],
+      "expected_behavior": [
+        "system updates the product and returns 200 when payload is valid",
+        "system returns 404 when product_id does not exist"
+      ]
+    },
+    {
+      "requirement_id": "REQ-005",
+      "feature": "Admin deletes a product",
+      "inputs": ["product_id"],
+      "constraints": [
+        { "field": "product_id", "type": "existence" }
+      ],
+      "conditions": ["admin DELETE /api/products/<id>/"],
+      "expected_behavior": [
+        "system removes the product and returns 204",
+        "system returns 404 when product_id does not exist"
+      ]
+    },
+    {
+      "requirement_id": "REQ-006",
+      "feature": "Customer creates an order",
+      "inputs": ["items", "customer_name", "customer_phone", "customer_address"],
+      "constraints": [
+        { "field": "items", "type": "numeric_range", "min": 1 },
+        { "field": "customer_name", "type": "required" },
+        { "field": "customer_phone", "type": "required" },
+        { "field": "customer_address", "type": "required" }
+      ],
+      "conditions": ["customer posts to /api/orders/create/"],
+      "expected_behavior": [
+        "system creates the order and returns 201 with order details"
+      ]
+    },
+    {
+      "requirement_id": "REQ-007",
+      "feature": "Reject empty order",
+      "inputs": ["items"],
+      "constraints": [
+        { "field": "items", "type": "numeric_range", "min": 1 }
+      ],
+      "conditions": ["items list is empty"],
+      "expected_behavior": [
+        "system rejects the order and returns 400 Bad Request"
+      ]
+    },
+    {
+      "requirement_id": "REQ-008",
+      "feature": "Reject order with missing customer information",
+      "inputs": ["customer_name", "customer_phone", "customer_address"],
+      "constraints": [
+        { "field": "customer_name", "type": "required" },
+        { "field": "customer_phone", "type": "required" },
+        { "field": "customer_address", "type": "required" }
+      ],
+      "conditions": ["any of customer_name / phone / address is missing or empty"],
+      "expected_behavior": [
+        "system rejects the order and returns 400 Bad Request"
+      ]
+    },
+    {
+      "requirement_id": "REQ-009",
+      "feature": "Reject order whose quantity exceeds stock",
+      "inputs": ["quantity", "stock"],
+      "constraints": [
+        { "field": "quantity", "type": "relational", "operator": "<=", "target": "stock" },
+        { "field": "quantity", "type": "numeric_range", "min": 1 }
+      ],
+      "conditions": ["item quantity is greater than available stock OR quantity <= 0"],
+      "expected_behavior": [
+        "system rejects the order and returns 400 Bad Request"
+      ]
+    },
+    {
+      "requirement_id": "REQ-010",
+      "feature": "Reduce stock after successful order",
+      "inputs": ["product_id", "quantity"],
+      "constraints": [
+        { "field": "stock", "type": "relational", "operator": ">=", "target": "0" }
+      ],
+      "conditions": ["order is successfully created"],
+      "expected_behavior": [
+        "product.stock is decreased by quantity for each ordered item"
+      ]
+    },
+    {
+      "requirement_id": "REQ-011",
+      "feature": "Customer views order detail",
+      "inputs": ["order_id"],
+      "constraints": [
+        { "field": "order_id", "type": "existence" }
+      ],
+      "conditions": ["client requests /api/orders/<id>/"],
+      "expected_behavior": [
+        "system returns 200 with order detail when order_id exists",
+        "system returns 404 when order_id does not exist"
+      ]
+    },
+    {
+      "requirement_id": "REQ-012",
+      "feature": "Admin updates order status",
+      "inputs": ["order_id", "status"],
+      "constraints": [
+        { "field": "status", "type": "enum", "allowed": ["pending", "completed", "cancelled"] },
+        { "field": "order_id", "type": "existence" }
+      ],
+      "conditions": ["admin PATCH /api/orders/<id>/ with new status"],
+      "expected_behavior": [
+        "system updates the order status when status is one of the allowed values",
+        "system rejects the request and returns 400 when status is invalid"
+      ]
+    }
+  ]
+}

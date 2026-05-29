@@ -1,0 +1,2134 @@
+{
+  "optimized_test_cases": [
+    {
+      "test_case_id": "TC-REQ-007-004",
+      "requirement_id": "REQ-007",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-007",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-007-005",
+      "requirement_id": "REQ-007",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Set up the condition combination: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-007",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-004",
+      "requirement_id": "REQ-008",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-008",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-005",
+      "requirement_id": "REQ-008",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Set up the condition combination: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-008",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-009-004",
+      "requirement_id": "REQ-009",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-009",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-009-005",
+      "requirement_id": "REQ-009",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Set up the condition combination: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-009",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-007-003",
+      "requirement_id": "REQ-007",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-007",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-003",
+      "requirement_id": "REQ-008",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-008",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-009-003",
+      "requirement_id": "REQ-009",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-009",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-007-002",
+      "requirement_id": "REQ-007",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-007",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-002",
+      "requirement_id": "REQ-008",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-008",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-009-002",
+      "requirement_id": "REQ-009",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-009",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-007-001",
+      "requirement_id": "REQ-007",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-007",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-001",
+      "requirement_id": "REQ-008",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-008",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-009-001",
+      "requirement_id": "REQ-009",
+      "feature": "system rejects the order and returns 400 Bad Request",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system rejects the order and returns 400 Bad Request",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "High",
+      "risk_level": "High",
+      "risk_score": 8,
+      "traceability": {
+        "source_requirement": "REQ-009",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-010-004",
+      "requirement_id": "REQ-010",
+      "feature": "product.stock is decreased by quantity for each ordered item",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: product.stock is decreased by quantity for each ordered item",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-010",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "decreased",
+          "quantity",
+          "ordered"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-010-005",
+      "requirement_id": "REQ-010",
+      "feature": "product.stock is decreased by quantity for each ordered item",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: product.stock is decreased by quantity for each ordered item",
+        "Set up the condition combination: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-010",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "decreased",
+          "quantity",
+          "ordered"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-012-005",
+      "requirement_id": "REQ-012",
+      "feature": "system updates the order status when status is one of the allowed values",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": " pending in enumeration;  completed in enumeration;  cancelled in enumeration",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the order status when status is one of the allowed values",
+        "Set up the condition combination:  pending in enumeration;  completed in enumeration;  cancelled in enumeration",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-012",
+        "covered_item": " pending in enumeration;  completed in enumeration;  cancelled in enumeration",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "updates",
+          "allowed",
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-012-006",
+      "requirement_id": "REQ-012",
+      "feature": "system updates the order status when status is one of the allowed values",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "contains input out of allowed enumeration",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the order status when status is one of the allowed values",
+        "Set up the condition combination: contains input out of allowed enumeration",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-012",
+        "covered_item": "contains input out of allowed enumeration",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "updates",
+          "allowed",
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-010-003",
+      "requirement_id": "REQ-010",
+      "feature": "product.stock is decreased by quantity for each ordered item",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: product.stock is decreased by quantity for each ordered item",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-010",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "decreased",
+          "quantity",
+          "ordered"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-010-002",
+      "requirement_id": "REQ-010",
+      "feature": "product.stock is decreased by quantity for each ordered item",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: product.stock is decreased by quantity for each ordered item",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-010",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "decreased",
+          "quantity",
+          "ordered"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-012-004",
+      "requirement_id": "REQ-012",
+      "feature": "system updates the order status when status is one of the allowed values",
+      "title": "Verify contains input out of allowed enumeration",
+      "description": "Test the condition: contains input out of allowed enumeration",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "contains input out of allowed enumeration",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the order status when status is one of the allowed values",
+        "Prepare test data for: contains input out of allowed enumeration",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-012",
+        "covered_item": "contains input out of allowed enumeration",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "updates",
+          "allowed",
+          "rejects"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-010-001",
+      "requirement_id": "REQ-010",
+      "feature": "product.stock is decreased by quantity for each ordered item",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: product.stock is decreased by quantity for each ordered item",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-010",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-012-001",
+      "requirement_id": "REQ-012",
+      "feature": "system updates the order status when status is one of the allowed values",
+      "title": "Verify pending in enumeration",
+      "description": "Test the condition: pending in enumeration",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "pending in enumeration",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the order status when status is one of the allowed values",
+        "Prepare test data for: pending in enumeration",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "traceability": {
+        "source_requirement": "REQ-012",
+        "covered_item": "pending in enumeration",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-006-004",
+      "requirement_id": "REQ-006",
+      "feature": "system creates the order and returns 201 with order details",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing order_id",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system creates the order and returns 201 with order details",
+        "Set up the condition combination: existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-006",
+        "covered_item": "existing order_id",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "creates",
+          "details"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-006-005",
+      "requirement_id": "REQ-006",
+      "feature": "system creates the order and returns 201 with order details",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing order_id",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system creates the order and returns 201 with order details",
+        "Set up the condition combination: non-existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-006",
+        "covered_item": "non-existing order_id",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "creates",
+          "details"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-011-004",
+      "requirement_id": "REQ-011",
+      "feature": "system returns 200 with order detail when order_id exists",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing order_id",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with order detail when order_id exists",
+        "Set up the condition combination: existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-011",
+        "covered_item": "existing order_id",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "order_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-011-005",
+      "requirement_id": "REQ-011",
+      "feature": "system returns 200 with order detail when order_id exists",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing order_id",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with order detail when order_id exists",
+        "Set up the condition combination: non-existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-011",
+        "covered_item": "non-existing order_id",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "order_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-006-003",
+      "requirement_id": "REQ-006",
+      "feature": "system creates the order and returns 201 with order details",
+      "title": "Verify null order_id",
+      "description": "Test the condition: null order_id",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null order_id",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system creates the order and returns 201 with order details",
+        "Prepare test data for: null order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-006",
+        "covered_item": "null order_id",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "creates",
+          "details"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-011-003",
+      "requirement_id": "REQ-011",
+      "feature": "system returns 200 with order detail when order_id exists",
+      "title": "Verify null order_id",
+      "description": "Test the condition: null order_id",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null order_id",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with order detail when order_id exists",
+        "Prepare test data for: null order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-011",
+        "covered_item": "null order_id",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "order_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-006-002",
+      "requirement_id": "REQ-006",
+      "feature": "system creates the order and returns 201 with order details",
+      "title": "Verify non-existing order_id",
+      "description": "Test the condition: non-existing order_id",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing order_id",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system creates the order and returns 201 with order details",
+        "Prepare test data for: non-existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-006",
+        "covered_item": "non-existing order_id",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "creates",
+          "details"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-011-002",
+      "requirement_id": "REQ-011",
+      "feature": "system returns 200 with order detail when order_id exists",
+      "title": "Verify non-existing order_id",
+      "description": "Test the condition: non-existing order_id",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing order_id",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with order detail when order_id exists",
+        "Prepare test data for: non-existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-011",
+        "covered_item": "non-existing order_id",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "order_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-006-001",
+      "requirement_id": "REQ-006",
+      "feature": "system creates the order and returns 201 with order details",
+      "title": "Verify existing order_id",
+      "description": "Test the condition: existing order_id",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing order_id",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system creates the order and returns 201 with order details",
+        "Prepare test data for: existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-006",
+        "covered_item": "existing order_id",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-011-001",
+      "requirement_id": "REQ-011",
+      "feature": "system returns 200 with order detail when order_id exists",
+      "title": "Verify existing order_id",
+      "description": "Test the condition: existing order_id",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing order_id",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with order detail when order_id exists",
+        "Prepare test data for: existing order_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "traceability": {
+        "source_requirement": "REQ-011",
+        "covered_item": "existing order_id",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-001-004",
+      "requirement_id": "REQ-001",
+      "feature": "system returns 200 with a JSON list of products containing name, description, pr",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with a JSON list of products containing name, description, pr",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 4,
+      "traceability": {
+        "source_requirement": "REQ-001",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "description",
+          "containing",
+          "products"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-001-005",
+      "requirement_id": "REQ-001",
+      "feature": "system returns 200 with a JSON list of products containing name, description, pr",
+      "title": "Decision Table: one required condition missing",
+      "description": "Exactly one required condition is violated.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "non-existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with a JSON list of products containing name, description, pr",
+        "Set up the condition combination: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and report the violated condition.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 4,
+      "traceability": {
+        "source_requirement": "REQ-001",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "description",
+          "containing",
+          "products"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-001-003",
+      "requirement_id": "REQ-001",
+      "feature": "system returns 200 with a JSON list of products containing name, description, pr",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with a JSON list of products containing name, description, pr",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 4,
+      "traceability": {
+        "source_requirement": "REQ-001",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "description",
+          "containing",
+          "products"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-001-002",
+      "requirement_id": "REQ-001",
+      "feature": "system returns 200 with a JSON list of products containing name, description, pr",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with a JSON list of products containing name, description, pr",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 4,
+      "traceability": {
+        "source_requirement": "REQ-001",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "description",
+          "containing",
+          "products"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-001-001",
+      "requirement_id": "REQ-001",
+      "feature": "system returns 200 with a JSON list of products containing name, description, pr",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with a JSON list of products containing name, description, pr",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Medium",
+      "risk_level": "Medium",
+      "risk_score": 4,
+      "traceability": {
+        "source_requirement": "REQ-001",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-002-004",
+      "requirement_id": "REQ-002",
+      "feature": "system returns 200 with the product detail when product_id exists",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with the product detail when product_id exists",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-002",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-003-004",
+      "requirement_id": "REQ-003",
+      "feature": "system returns 201 with the saved product when payload is valid",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 201 with the saved product when payload is valid",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-003",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "payload",
+          "saved",
+          "valid"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-004-004",
+      "requirement_id": "REQ-004",
+      "feature": "system updates the product and returns 200 when payload is valid",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing product_id",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the product and returns 200 when payload is valid",
+        "Set up the condition combination: existing product_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-004",
+        "covered_item": "existing product_id",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "updates",
+          "payload"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-005-004",
+      "requirement_id": "REQ-005",
+      "feature": "system removes the product and returns 204",
+      "title": "Decision Table: all required conditions satisfied",
+      "description": "All valid conditions are satisfied simultaneously.",
+      "test_design_technique": "Decision Table Testing",
+      "coverage_item": "existing request",
+      "coverage_type": "combination",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system removes the product and returns 204",
+        "Set up the condition combination: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-005",
+        "covered_item": "existing request",
+        "coverage_strategy": "decision table / combination coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "removes",
+          "exist"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-002-003",
+      "requirement_id": "REQ-002",
+      "feature": "system returns 200 with the product detail when product_id exists",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with the product detail when product_id exists",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-002",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-003-003",
+      "requirement_id": "REQ-003",
+      "feature": "system returns 201 with the saved product when payload is valid",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 201 with the saved product when payload is valid",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-003",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "payload",
+          "saved",
+          "valid"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-004-003",
+      "requirement_id": "REQ-004",
+      "feature": "system updates the product and returns 200 when payload is valid",
+      "title": "Verify null product_id",
+      "description": "Test the condition: null product_id",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null product_id",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the product and returns 200 when payload is valid",
+        "Prepare test data for: null product_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-004",
+        "covered_item": "null product_id",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "updates",
+          "payload"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-005-003",
+      "requirement_id": "REQ-005",
+      "feature": "system removes the product and returns 204",
+      "title": "Verify null request",
+      "description": "Test the condition: null request",
+      "test_design_technique": "Boundary Value Analysis",
+      "coverage_item": "null request",
+      "coverage_type": "boundary",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system removes the product and returns 204",
+        "Prepare test data for: null request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should handle this boundary value according to the requirement.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-005",
+        "covered_item": "null request",
+        "coverage_strategy": "boundary value coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "removes",
+          "exist"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-002-002",
+      "requirement_id": "REQ-002",
+      "feature": "system returns 200 with the product detail when product_id exists",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with the product detail when product_id exists",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-002",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "detail",
+          "exists"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-003-002",
+      "requirement_id": "REQ-003",
+      "feature": "system returns 201 with the saved product when payload is valid",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 201 with the saved product when payload is valid",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-003",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "payload",
+          "saved",
+          "valid"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-004-002",
+      "requirement_id": "REQ-004",
+      "feature": "system updates the product and returns 200 when payload is valid",
+      "title": "Verify non-existing product_id",
+      "description": "Test the condition: non-existing product_id",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing product_id",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the product and returns 200 when payload is valid",
+        "Prepare test data for: non-existing product_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-004",
+        "covered_item": "non-existing product_id",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "updates",
+          "payload"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-005-002",
+      "requirement_id": "REQ-005",
+      "feature": "system removes the product and returns 204",
+      "title": "Verify non-existing request",
+      "description": "Test the condition: non-existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "non-existing request",
+      "coverage_type": "negative",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system removes the product and returns 204",
+        "Prepare test data for: non-existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should reject the input and display a meaningful error message.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-005",
+        "covered_item": "non-existing request",
+        "coverage_strategy": "negative path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 400,
+        "http_status_max": 400,
+        "must_contain": [
+          "product_id",
+          "removes",
+          "exist"
+        ],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-002-001",
+      "requirement_id": "REQ-002",
+      "feature": "system returns 200 with the product detail when product_id exists",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 200 with the product detail when product_id exists",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-002",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-003-001",
+      "requirement_id": "REQ-003",
+      "feature": "system returns 201 with the saved product when payload is valid",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system returns 201 with the saved product when payload is valid",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-003",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-004-001",
+      "requirement_id": "REQ-004",
+      "feature": "system updates the product and returns 200 when payload is valid",
+      "title": "Verify existing product_id",
+      "description": "Test the condition: existing product_id",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing product_id",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system updates the product and returns 200 when payload is valid",
+        "Prepare test data for: existing product_id",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-004",
+        "covered_item": "existing product_id",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-005-001",
+      "requirement_id": "REQ-005",
+      "feature": "system removes the product and returns 204",
+      "title": "Verify existing request",
+      "description": "Test the condition: existing request",
+      "test_design_technique": "Equivalence Partitioning",
+      "coverage_item": "existing request",
+      "coverage_type": "positive",
+      "preconditions": [],
+      "test_data": {},
+      "steps": [
+        "Open the target feature: system removes the product and returns 204",
+        "Prepare test data for: existing request",
+        "Execute the operation according to the requirement",
+        "Observe the actual result"
+      ],
+      "expected_result": "The system should accept the input and continue the normal flow.",
+      "priority": "Low",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "traceability": {
+        "source_requirement": "REQ-005",
+        "covered_item": "existing request",
+        "coverage_strategy": "positive path coverage"
+      },
+      "review_status": "generated",
+      "need_manual_review": false,
+      "oracle": {
+        "http_status_min": 200,
+        "http_status_max": 201,
+        "must_contain": [],
+        "must_not_contain": [],
+        "side_effect": {}
+      }
+    }
+  ],
+  "optimization_summary": {
+    "original_count": 61,
+    "optimized_count": 55,
+    "strategy": "risk_based_minimization",
+    "removed_count": 6
+  }
+}

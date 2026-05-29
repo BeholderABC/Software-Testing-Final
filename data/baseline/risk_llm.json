@@ -1,0 +1,196 @@
+{
+  "risk_assessment": [
+    {
+      "requirement_id": "REQ-001",
+      "feature": "Product catalogue listing",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "factors": [
+        "business_impact medium: catalogue visibility supports browsing and sales enablement but is read-only and non-transactional",
+        "failure_probability low: a straightforward GET request with no dynamic inputs rarely encounters edge cases or defects",
+        "complexity low: no query parameters, filtering logic, or stateful operations required",
+        "failure_impact low: an outage merely reduces product discoverability without causing data corruption or financial loss"
+      ],
+      "business_impact": 2,
+      "failure_probability": 1,
+      "complexity": 1,
+      "failure_impact": 1
+    },
+    {
+      "requirement_id": "REQ-002",
+      "feature": "Product detail by id",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "factors": [
+        "business_impact medium: product visibility supports the purchasing funnel but involves only read operations without direct financial consequences",
+        "failure_probability low: a straightforward GET request with a single identifier and basic existence check rarely introduces defects",
+        "complexity low: minimal input space and simple database retrieval logic with standard HTTP status responses",
+        "failure_impact low: an outage merely prevents browsing a single item without causing data corruption or monetary loss"
+      ],
+      "business_impact": 2,
+      "failure_probability": 1,
+      "complexity": 1,
+      "failure_impact": 1
+    },
+    {
+      "requirement_id": "REQ-003",
+      "feature": "Admin creates a product",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "factors": [
+        "business_impact high: product creation is foundational to the catalog and directly enables all downstream sales operations",
+        "failure_probability medium: input validation for required fields and numeric ranges introduces typical defect-prone guard logic",
+        "complexity low: straightforward POST request with four simple fields and basic range constraints",
+        "failure_impact high: silent failures or corrupted product records would break storefront display, search, and purchasing flows"
+      ],
+      "business_impact": 3,
+      "failure_probability": 2,
+      "complexity": 1,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-004",
+      "feature": "Admin updates a product",
+      "risk_level": "High",
+      "risk_score": 8,
+      "factors": [
+        "business_impact high: core data edit that directly controls pricing and inventory visibility across the platform",
+        "failure_probability medium: requires existence validation and type checking across multiple fields where edge cases often hide",
+        "complexity medium: standard REST update with multiple input parameters and conditional existence checks",
+        "failure_impact high: incorrect product data propagates to storefronts and checkout, causing financial or reputational damage"
+      ],
+      "business_impact": 3,
+      "failure_probability": 2,
+      "complexity": 2,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-005",
+      "feature": "Admin deletes a product",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "factors": [
+        "business_impact high: deleting a product is an irreversible admin action that directly impacts catalog integrity and potential revenue streams",
+        "failure_probability medium: although the input is simple, deletion logic often involves cascading references and concurrency controls where defects can hide",
+        "complexity low: the operation accepts a single identifier and follows a straightforward existence-check-then-delete flow",
+        "failure_impact high: silent failures or incorrect deletions cause permanent data loss, broken storefront links, and require manual database recovery"
+      ],
+      "business_impact": 3,
+      "failure_probability": 2,
+      "complexity": 1,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-006",
+      "feature": "Customer creates an order",
+      "risk_level": "High",
+      "risk_score": 9,
+      "factors": [
+        "business_impact high: order creation drives revenue and inventory tracking, making it a core transactional function",
+        "failure_probability high: multiple required fields and range constraints form a critical validation boundary where defects frequently emerge before committing the transaction",
+        "complexity medium: requires handling four distinct inputs with specific presence and type checks alongside transactional state changes",
+        "failure_impact high: a defect could cause lost sales, incorrect inventory deductions, or corrupted customer records"
+      ],
+      "business_impact": 3,
+      "failure_probability": 3,
+      "complexity": 2,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-007",
+      "feature": "Reject empty order",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "factors": [
+        "business_impact medium: validates order completeness before processing, preventing downstream fulfillment and billing errors without directly handling payments",
+        "failure_probability high: input guards are prime locations for defects due to varied client payloads and edge-case handling requirements",
+        "complexity low: requires only a straightforward length check against a minimum threshold",
+        "failure_impact high: bypassing this check allows invalid orders into the system, causing fulfillment failures, data corruption, and customer disputes"
+      ],
+      "business_impact": 2,
+      "failure_probability": 3,
+      "complexity": 1,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-008",
+      "feature": "Reject order with missing customer information",
+      "risk_level": "Medium",
+      "risk_score": 4,
+      "factors": [
+        "business_impact medium: ensures order integrity by preventing incomplete transactions from entering the fulfillment pipeline",
+        "failure_probability medium: validation guards frequently encounter edge cases like whitespace, nulls, or encoding issues that slip past basic checks",
+        "complexity low: requires only straightforward existence and non-empty checks on three standard string fields",
+        "failure_impact medium: bypassing this check allows malformed orders to proceed, causing fulfillment delays and increased support overhead"
+      ],
+      "business_impact": 2,
+      "failure_probability": 2,
+      "complexity": 1,
+      "failure_impact": 2
+    },
+    {
+      "requirement_id": "REQ-009",
+      "feature": "Reject order whose quantity exceeds stock",
+      "risk_level": "Medium",
+      "risk_score": 7,
+      "factors": [
+        "business_impact high: preventing overselling is critical to inventory integrity, order fulfillment reliability, and revenue protection",
+        "failure_probability medium: input validation on numeric comparisons is straightforward but sits at a critical transaction guard where defects can slip through",
+        "complexity low: requires only a simple relational comparison and a single numeric range check with no branching or external dependencies",
+        "failure_impact high: allowing overstock orders causes inventory desynchronization, unfulfilled sales, and significant customer trust damage"
+      ],
+      "business_impact": 3,
+      "failure_probability": 2,
+      "complexity": 1,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-010",
+      "feature": "Reduce stock after successful order",
+      "risk_level": "High",
+      "risk_score": 9,
+      "factors": [
+        "business_impact high: stock reduction is core to fulfilling orders and preventing overselling, directly impacting revenue and inventory integrity",
+        "failure_probability high: the operation combines stateful mutation with a critical boundary guard (stock >= 0), making it prone to race conditions or validation bypasses if not strictly enforced",
+        "complexity medium: straightforward decrement logic with two inputs and one relational constraint, but requires careful handling of database transactions and concurrent access",
+        "failure_impact high: incorrect stock levels cause overselling, inventory discrepancies, and financial losses, severely damaging customer trust and operational reliability"
+      ],
+      "business_impact": 3,
+      "failure_probability": 3,
+      "complexity": 2,
+      "failure_impact": 3
+    },
+    {
+      "requirement_id": "REQ-011",
+      "feature": "Customer views order detail",
+      "risk_level": "Low",
+      "risk_score": 2,
+      "factors": [
+        "business_impact medium: viewing order details supports customer self-service and support workflows but remains a non-transactional read operation",
+        "failure_probability low: a straightforward GET request with a single identifier and basic existence check rarely introduces defects",
+        "complexity low: input space consists of one parameter and simple conditional branching for success versus not-found responses",
+        "failure_impact low: incorrect display or missing data affects user experience without causing financial loss or data corruption"
+      ],
+      "business_impact": 2,
+      "failure_probability": 1,
+      "complexity": 1,
+      "failure_impact": 1
+    },
+    {
+      "requirement_id": "REQ-012",
+      "feature": "Admin updates order status",
+      "risk_level": "Medium",
+      "risk_score": 6,
+      "factors": [
+        "business_impact medium: order status management drives fulfillment workflows but does not directly process payments or inventory",
+        "failure_probability medium: relies on precise enum validation and existence checks where guardrail defects commonly occur",
+        "complexity low: straightforward PATCH endpoint with simple parameter validation and single-record database update",
+        "failure_impact high: incorrect status transitions can trigger wrong fulfillment paths, leading to shipping errors and customer disputes"
+      ],
+      "business_impact": 2,
+      "failure_probability": 2,
+      "complexity": 1,
+      "failure_impact": 3
+    }
+  ]
+}

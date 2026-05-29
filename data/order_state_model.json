@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "purpose": "Order status state machine used by FR 4.0 white-box test design.",
+    "target": "target_app/Mini-E-Commerce-System/Backend/store/models.py — Order.STATUS_CHOICES"
+  },
+  "name": "OrderStatusMachine",
+  "requirement_id": "REQ-012",
+  "feature": "Admin updates order status",
+  "initial": "pending",
+  "states": ["pending", "completed", "cancelled"],
+  "terminal": ["completed", "cancelled"],
+  "transitions": [
+    {
+      "source": "pending",
+      "event": "complete",
+      "target": "completed",
+      "description": "admin marks the order as completed",
+      "valid": true
+    },
+    {
+      "source": "pending",
+      "event": "cancel",
+      "target": "cancelled",
+      "description": "admin cancels the order before fulfilment",
+      "valid": true
+    },
+    {
+      "source": "completed",
+      "event": "cancel",
+      "target": "cancelled",
+      "description": "cancelling a completed order is not allowed",
+      "valid": false
+    },
+    {
+      "source": "cancelled",
+      "event": "complete",
+      "target": "completed",
+      "description": "completing a cancelled order is not allowed",
+      "valid": false
+    }
+  ]
+}
