@@ -72,6 +72,70 @@ this document, however, concerns the *first* execution against the
 order-creation and order-status modules, which uncovered three
 defects of distinct origins.
 
+### 2.1 Execution-Layer Deduplication
+
+The data-driven harness operates at a finer grain than the underlying
+HTTP request templates. The rule pipeline may generate several test
+cases that, after the request-template adaptation in
+[mec_request_builder.py](../tests/integration/mec_request_builder.py),
+produce byte-identical HTTP requests with identical oracles. To avoid
+issuing those identical requests repeatedly — which would inflate the
+run report without contributing additional coverage — the harness
+folds every group that shares the dedup key
+
+```
+(requirement_id, coverage_type, event_sequence)
+```
+
+to a single representative before parametrising pytest. The
+representative is the first encountered case in the prioritised
+order. The dedup logic is implemented in
+[`_dedupe_by_template_key`](../tests/integration/test_data_driven_orders.py)
+and the same key is mirrored in the in-UI counter
+[`_count_executable`](../app.py).
+
+The key is non-trivial in two respects. First, it includes
+``coverage_type`` rather than ``test_case_id``: it is exactly the
+fields that the HTTP template branches on. Second, it includes the
+``event_sequence`` extracted from ``test_data`` so that white-box
+state-transition cases — which differ from black-box cases only by
+their event sequence — are not absorbed into a black-box
+representative. The fingerprint helper is
+[`_event_sequence_fingerprint`](../tests/integration/test_data_driven_orders.py).
+
+The deduplication is justified by structural equivalence: cases
+sharing the dedup key resolve to the same ``HttpExpectation`` object,
+so their execution outcomes are not merely empirically similar but
+mathematically identical. Coverage decisions are made earlier in the
+pipeline — at the design and minimisation stages described in
+[coverage_strategy.md](coverage_strategy.md) — and are independent of
+this execution-time economy. Every generated case continues to appear
+in the exported artefacts under `outputs/` and in the traceability
+matrix; only the live HTTP execution is collapsed.
+
+To make the equivalence empirically verifiable, the harness accepts a
+``FULL_HTTP_EXEC=1`` environment variable that disables the
+deduplication. In this diagnostic mode every case is executed as its
+own request. The same toggle is exposed in the Streamlit user
+interface (Step 0 and Step 8) as a checkbox labelled *"Run every case
+individually (no HTTP dedup) — diagnostic mode"*. Table 3 records the
+measured outcome of both modes on the persisted baseline.
+
+**Table 3.** Default versus diagnostic execution modes on the
+baseline (12 requirements; 65 generated cases).
+
+| Mode | Parameter count | Outcome |
+|---|---:|---|
+| Default (deduplicated) | 51 parametrised + 1 sanity = 52 | 52 passed |
+| Diagnostic (`FULL_HTTP_EXEC=1`) | 65 parametrised + 1 sanity = 66 | 66 passed |
+
+Both modes produce a fully green run, which empirically confirms that
+the deduplicated execution covers the same observable behaviour as the
+unrestricted one. The default mode is preferred for routine runs and
+for the demonstration in §3 to §5 because its report concentrates on
+the distinct HTTP checks; the diagnostic mode is used when a reviewer
+asks for verification of the equivalence claim.
+
 ---
 
 ## 3. Defect 1 — Detected by Boundary Value Analysis
@@ -80,9 +144,9 @@ defects of distinct origins.
 
 The order quantity rule (REQ-009) was analysed using boundary value
 analysis (ISO/IEC/IEEE 29119-4 §6.2). The `quantity` field admits
-the boundary class shown in Table 3.
+the boundary class shown in Table 4.
 
-**Table 3.** Boundary class of `quantity`.
+**Table 4.** Boundary class of `quantity`.
 
 | Value | Class | Expected outcome |
 |---|---|---|
@@ -96,9 +160,9 @@ the boundary class shown in Table 3.
 The tool generated the lower-boundary case
 (`test_req009_quantity_zero_returns_400` in
 [tests/integration/test_order_api.py](../tests/integration/test_order_api.py)).
-Its first execution returned the result recorded in Table 4.
+Its first execution returned the result recorded in Table 5.
 
-**Table 4.** First-execution result of Defect 1.
+**Table 5.** First-execution result of Defect 1.
 
 | | |
 |---|---|
@@ -132,9 +196,9 @@ The guard now occupies line 102 of `views.py`.
 ### 3.4 Re-test
 
 After the repair, the order suite was re-executed against the
-backend. The pertinent results are recorded in Table 5.
+backend. The pertinent results are recorded in Table 6.
 
-**Table 5.** Re-test results for Defect 1.
+**Table 6.** Re-test results for Defect 1.
 
 | Test case | Outcome |
 |---|---|
@@ -165,9 +229,9 @@ consumed?
 The combination case was made executable as
 `test_req010_multi_item_partial_failure_rolls_back_all_stock`
 ([tests/integration/test_order_api.py](../tests/integration/test_order_api.py)).
-Its first execution returned the result recorded in Table 6.
+Its first execution returned the result recorded in Table 7.
 
-**Table 6.** First-execution result of Defect 2.
+**Table 7.** First-execution result of Defect 2.
 
 | | |
 |---|---|
@@ -219,9 +283,9 @@ The order status rule (REQ-012) was analysed as a finite state
 machine (ISO/IEC/IEEE 29119-4 §7). The machine, defined in
 [data/order_state_model.json](../data/order_state_model.json), holds
 that `completed` and `cancelled` are terminal: no transition may
-leave either. The two declared invalid edges are recorded in Table 7.
+leave either. The two declared invalid edges are recorded in Table 8.
 
-**Table 7.** Invalid (guard) edges of the Order status machine.
+**Table 8.** Invalid (guard) edges of the Order status machine.
 
 | Edge | Class | Expected outcome |
 |---|---|---|
@@ -235,9 +299,9 @@ The `all_transitions+guards` criterion generated the two guard cases
 multi-step PATCH sequence by the data-driven harness: the prefix
 drives a fresh order to the terminal state, then the final step
 attempts the forbidden transition. The first execution returned the
-result recorded in Table 8.
+result recorded in Table 9.
 
-**Table 8.** First-execution result of Defect 3.
+**Table 9.** First-execution result of Defect 3.
 
 | | |
 |---|---|
@@ -284,9 +348,9 @@ The guard occupies the `update` override of `OrderDetailAPIView` in
 ### 5.4 Re-test
 
 After the repair, the four state-transition cases were re-executed
-against the backend. The results are recorded in Table 9.
+against the backend. The results are recorded in Table 10.
 
-**Table 9.** Re-test results for Defect 3.
+**Table 10.** Re-test results for Defect 3.
 
 | Test case | Sequence | Outcome |
 |---|---|---|
@@ -306,9 +370,9 @@ than passing vacuously.
 
 Three real defects, of distinct origins, were detected in the
 order-handling modules by three distinct techniques. The contrast is
-summarised in Table 10.
+summarised in Table 11.
 
-**Table 10.** Contrast between the three defects.
+**Table 11.** Contrast between the three defects.
 
 | Attribute | Defect 1 | Defect 2 | Defect 3 |
 |---|---|---|---|

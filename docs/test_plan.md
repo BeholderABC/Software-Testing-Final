@@ -211,7 +211,7 @@ project.
 |---|---|
 | Determinism | The non-LLM stages are pure rule engines; identical input produces identical output, ensuring reproducibility. |
 | Separation of concerns | The user interface (`app.py`) is a thin scheduler over the modules in `core/`, each of which addresses a single concern. |
-| Internal verification | Forty-eight unit tests cover the engines, optimiser, oracle, exporter, and state model. |
+| Internal verification | Forty-seven unit tests cover the engines, optimiser, oracle, exporter, and state model. |
 | Traceability | `scripts/build_traceability.py` regenerates the requirement-to-test matrix automatically. |
 | Conventions | Terminology, identifiers, and JSON schemas are documented in [STYLE_GUIDE.md](STYLE_GUIDE.md). |
 
@@ -229,9 +229,9 @@ that of ISO/IEC/IEEE 29119-4: *Equivalence Partitioning* (EP),
 **Table 4.** Suite-level design.
 
 | Suite | Requirements | Risk level | Techniques applied | Rationale |
-|---|---|---|---|---|
+|---|---|---|---|---
 | Product CRUD | REQ-001 – REQ-005 | Low – High | EP, BVA, existence checks | Read endpoints are of low risk; creation, update, and deletion carry validation and irreversibility risk. |
-| Order creation | REQ-006 – REQ-010 | High | EP, BVA, DT | Highest-risk workflow; boundary analysis on `quantity`, decision-table coverage on the combined create rules. |
+| Order creation | REQ-006 – REQ-010 | Medium – High | EP, BVA, DT | Highest-impact workflow (REQ-006 and REQ-010 are High); boundary analysis on `quantity`, decision-table coverage on the combined create rules. |
 | Order retrieval | REQ-011 | Low | EP (existence) | Single-identifier lookup, positive class plus 404 negative class. |
 | Order status | REQ-012 | Medium | ST, enum boundary | Finite state machine; all-transitions and guard coverage applied. |
 
@@ -333,7 +333,7 @@ figures are obtained from
 front-loads effort into the construction of the pipeline; thereafter
 the marginal per-project cost of designing and executing a suite
 approaches zero, with the LLM cost per full run measured at
-approximately ¥0.20 at list price.
+approximately ¥0.19 at list price.
 
 ---
 

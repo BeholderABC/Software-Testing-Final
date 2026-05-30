@@ -291,7 +291,7 @@ of importance:
 ```
 risk_level (High > Medium > Low)
   → risk_score (higher first)
-    → technique (DT > BVA > EP)
+    → technique (DT, ST > BVA > EP)
       → coverage type (boundary / negative > positive)
 ```
 
@@ -305,8 +305,8 @@ Table 8.
 | Risk level | Retention policy |
 |---|---|
 | High | Every case is retained. |
-| Medium | One representative per coverage type is retained, together with every decision-table case. |
-| Low | Cases are deduplicated by coverage type; at least one case is always retained. |
+| Medium | One representative per coverage type is retained, together with every decision-table and state-transition case. |
+| Low | Cases are deduplicated by coverage type, together with every decision-table and state-transition case; at least one case is always retained. |
 
 ### 11.3 Public entry point
 
@@ -318,10 +318,10 @@ minimises. It returns the structure shown below.
 {
   "optimized_test_cases": [ ... ],
   "optimization_summary": {
-    "original_count": 61,
-    "optimized_count": 55,
+    "original_count": 65,
+    "optimized_count": 61,
     "strategy": "risk_based_minimization",
-    "removed_count": 6
+    "removed_count": 4
   }
 }
 ```

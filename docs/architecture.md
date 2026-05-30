@@ -369,16 +369,27 @@ The on-disk organisation of the project is summarised below.
 │   └── sample_*.json                     # unit-test fixtures
 ├── target_app/Mini-E-Commerce-System/    # target backend (Django REST)
 ├── tests/
-│   ├── conftest.py                       # shared fixtures
-│   ├── mec_request_builder.py            # test case → HTTP template
-│   ├── test_data_driven_orders.py        # generated cases → backend
-│   ├── test_mini_ecommerce_api.py        # product CRUD checks
-│   ├── test_order_api.py                 # order create/read checks
-│   ├── test_order_status_api.py          # order status transitions
-│   └── *_test.py                         # engine / exporter / etc unit tests
+│   ├── unit/                             # engine / optimiser / etc unit tests
+│   └── integration/
+│       ├── conftest.py                   # shared fixtures and backend probe
+│       ├── mec_request_builder.py        # test case → HTTP template
+│       ├── test_data_driven_orders.py    # generated cases → backend
+│       ├── test_mini_ecommerce_api.py    # product CRUD checks
+│       ├── test_order_api.py             # order create/read checks
+│       └── test_order_status_api.py      # order status transitions
 ├── scripts/
-│   └── build_traceability.py             # regenerates traceability_matrix.md
+│   ├── benchmark.py                      # measures latency and LLM cost
+│   ├── build_traceability.py             # regenerates traceability_matrix.md
+│   └── run_offline_tests.py              # persists the offline run result
 ├── docs/                                 # this folder
 ├── outputs/                              # timestamped run artefacts
 └── screenshots/                          # workflow screenshots
 ```
+
+---
+
+## References
+
+- ISO/IEC/IEEE 29119-2:2021, *Software and systems engineering — Software testing — Part 2: Test processes*.
+- ISO/IEC/IEEE 29119-4:2021, *Part 4: Test techniques*.
+- International Software Testing Qualifications Board (ISTQB), *Foundation Level Syllabus*, 2018.
