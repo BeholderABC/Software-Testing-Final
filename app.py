@@ -324,6 +324,7 @@ def _invalidate_downstream(*keys: str) -> None:
 # --- Step registry ---------------------------------------------------------
 
 STEPS: List[Dict[str, str]] = [
+    {"key": "landing",  "title": "Welcome",            "fr": "Choose a path"},
     {"key": "input",    "title": "Requirement Input",  "fr": "FR 1.0"},
     {"key": "parse",    "title": "Requirement Structuring", "fr": "FR 1.1"},
     {"key": "risk",     "title": "Risk Analysis",      "fr": "FR 2.0"},
@@ -385,8 +386,10 @@ def _render_sidebar() -> None:
         else:
             icon = "🔒"
         marker = "**" if i == st.session_state.current else ""
-        st.sidebar.write(
-            f"{icon} {marker}{i + 1}. {step['title']}{marker}")
+        # Landing page is rendered without a step number; pipeline steps
+        # are numbered 1..N-1.
+        label = step["title"] if i == 0 else f"{i}. {step['title']}"
+        st.sidebar.write(f"{icon} {marker}{label}{marker}")
 
     st.sidebar.divider()
     st.sidebar.subheader("Engine status")
@@ -427,7 +430,8 @@ def _cached_probe(url: str) -> Dict[str, Any]:
 
 def _nav_footer(step_index: int, *, can_advance: bool,
                 advance_label: str = "Next step →") -> None:
-    """Render Back / Next controls, anchored to the bottom-right."""
+    """Render Back / Next (or Restart on the last step) controls,
+    anchored to the bottom-right."""
     st.divider()
     # The wide first column is an empty spacer that pushes the two
     # buttons to the bottom-right corner.
@@ -448,12 +452,59 @@ def _nav_footer(step_index: int, *, can_advance: bool,
             next_col.button(advance_label, key=f"next_{step_index}",
                             disabled=True, width="stretch",
                             help="Complete this step to continue.")
+    else:
+        # Last step: the Next slot becomes a "Restart" control so the
+        # user can begin a fresh run from the same bottom-right corner
+        # they have been using throughout the pipeline.
+        if next_col.button("↺ Restart", key=f"restart_{step_index}",
+                           type="primary", width="stretch",
+                           help="Reset the pipeline and start a new run."):
+            for k in list(st.session_state.keys()):
+                if k not in ("backend_url",):
+                    del st.session_state[k]
+            st.rerun()
 
 
 def _step_header(step_index: int) -> None:
     step = STEPS[step_index]
-    st.subheader(f"Step {step_index + 1} / {N_STEPS} — {step['title']}")
+    # Landing page renders without a step number; pipeline steps are
+    # numbered 1..N-1 (the landing page does not consume a number).
+    if step_index == 0:
+        st.subheader(step["title"])
+    else:
+        st.subheader(
+            f"Step {step_index} / {N_STEPS - 1} — {step['title']}")
     st.caption(step["fr"])
+
+
+# ===========================================================================
+# Step 0 — Landing page
+# ===========================================================================
+
+def step_landing(idx: int) -> None:
+    """Entry page. The visitor either executes the persisted baseline
+    here, or advances into the full design pipeline."""
+    _step_header(idx)
+    st.write(
+        "Welcome to **AutoTestDesign**. Execute the persisted baseline "
+        "against the live backend on this page, or press *Next step* to "
+        "start the full design pipeline from requirement input.")
+
+    baseline_choice = st.radio(
+        "Baseline source",
+        ["Baseline — raw (65 cases)",
+         "Baseline — optimised (61 cases)"],
+        index=0, horizontal=True, key="_landing_baseline_choice")
+    kind = "optimised" if "optimised" in baseline_choice else "raw"
+    cases = _load_baseline(kind)
+
+    _render_run_panel(cases, run_button_key="_landing_run",
+                      summary_session_key="landing_run_summary",
+                      mode_key_prefix="landing")
+
+    # Standard footer; the Next button starts the pipeline.
+    _nav_footer(idx, can_advance=True,
+                advance_label="Start the full pipeline →")
 
 
 # ===========================================================================
@@ -514,8 +565,7 @@ def step_input(idx: int) -> None:
                    if ln.strip()])
     st.caption(f"{n_lines} non-empty requirement line(s) ready.")
 
-    _nav_footer(idx, can_advance=n_lines > 0,
-                advance_label="Confirm & continue →")
+    _nav_footer(idx, can_advance=n_lines > 0)
 
 
 # ===========================================================================
@@ -557,7 +607,14 @@ def step_parse(idx: int) -> None:
             _relock_after(idx, "risk_df", "coverage_df", "test_cases_df",
                           "test_cases_summary", "optimized_df",
                           "optimization_summary", "test_run_summary")
+            # Drop the editor's persisted widget state so the next render
+            # re-binds the editor to the now-merged source DataFrame.
+            # Without this reset, an "added" row remains in the editor's
+            # internal added_rows queue and re-appears as a blank row on
+            # the next rerun while the typed values move into the source.
+            st.session_state.pop("req_editor", None)
             st.toast("Edited — downstream steps will regenerate.")
+            st.rerun()
         _nav_footer(idx, can_advance=True)
     else:
         _nav_footer(idx, can_advance=False)
@@ -602,7 +659,9 @@ def step_risk(idx: int) -> None:
             _relock_after(idx, "coverage_df", "test_cases_df",
                           "test_cases_summary", "optimized_df",
                           "optimization_summary", "test_run_summary")
+            st.session_state.pop("risk_editor", None)
             st.toast("Edited — downstream steps will regenerate.")
+            st.rerun()
         _nav_footer(idx, can_advance=True)
     else:
         _nav_footer(idx, can_advance=False)
@@ -642,7 +701,9 @@ def step_coverage(idx: int) -> None:
             _relock_after(idx, "test_cases_df", "test_cases_summary",
                           "optimized_df", "optimization_summary",
                           "test_run_summary")
+            st.session_state.pop("cov_editor", None)
             st.toast("Edited — test cases will regenerate.")
+            st.rerun()
         _nav_footer(idx, can_advance=True)
     else:
         _nav_footer(idx, can_advance=False)
@@ -695,9 +756,27 @@ def step_cases(idx: int) -> None:
             tcdf, width="stretch", num_rows="dynamic", key="tc_editor")
         if not edited.equals(tcdf):
             st.session_state.test_cases_df = edited
+            # Recompute the summary so Total / Techniques / Priorities
+            # follow the editor (rows added or removed by hand).
+            by_tech: Dict[str, int] = {}
+            by_pri: Dict[str, int] = {}
+            if "test_design_technique" in edited.columns:
+                for t, n in (edited["test_design_technique"]
+                             .value_counts().items()):
+                    by_tech[str(t)] = int(n)
+            if "priority" in edited.columns:
+                for p, n in edited["priority"].value_counts().items():
+                    by_pri[str(p)] = int(n)
+            st.session_state.test_cases_summary = {
+                "total": int(len(edited)),
+                "by_technique": by_tech,
+                "by_priority": by_pri,
+            }
             _relock_after(idx, "optimized_df", "optimization_summary",
                           "test_run_summary")
+            st.session_state.pop("tc_editor", None)
             st.toast("Edited — optimisation result cleared.")
+            st.rerun()
 
         st.divider()
         st.markdown("**White-box state-transition coverage (FR 4.0)**")
@@ -714,6 +793,19 @@ def step_cases(idx: int) -> None:
                 model = state_model_mod.load_default_order_model()
                 res = state_model_mod.generate_state_test_cases(
                     model, strategy=_STATE_STRATEGIES[label])
+                # Attach a structured oracle to every ST case (FR 5.0),
+                # using the originating requirement so any `must_contain`
+                # keywords match the black-box path.
+                requirements_payload = [
+                    {
+                        "requirement_id": row["requirement_id"],
+                        "feature": row.get("target_module", ""),
+                        "expected_behavior": [row.get("expected_action", "")],
+                    }
+                    for _, row in st.session_state.requirements_df.iterrows()
+                ]
+                oracle_mod.attach_oracles(
+                    res["test_cases"], requirements_payload)
                 sdf = pd.DataFrame(res["test_cases"])
                 # Replace any previously appended state-transition cases for
                 # this model rather than skipping on a test_case_id clash:
@@ -725,8 +817,26 @@ def step_cases(idx: int) -> None:
                     current.get("test_design_technique",
                                 pd.Series(dtype=str))
                     != state_model_mod.TECHNIQUE]
-                st.session_state.test_cases_df = pd.concat(
-                    [kept, sdf], ignore_index=True)
+                combined = pd.concat([kept, sdf], ignore_index=True)
+                st.session_state.test_cases_df = combined
+                # Refresh the summary so the metrics row (Total /
+                # Techniques / Priorities) reflects the appended ST cases
+                # rather than the stale black-box-only counts.
+                by_tech: Dict[str, int] = {}
+                by_pri: Dict[str, int] = {}
+                if "test_design_technique" in combined.columns:
+                    for t, n in (combined["test_design_technique"]
+                                 .value_counts().items()):
+                        by_tech[str(t)] = int(n)
+                if "priority" in combined.columns:
+                    for p, n in (combined["priority"]
+                                 .value_counts().items()):
+                        by_pri[str(p)] = int(n)
+                st.session_state.test_cases_summary = {
+                    "total": int(len(combined)),
+                    "by_technique": by_tech,
+                    "by_priority": by_pri,
+                }
                 _relock_after(idx, "optimized_df", "optimization_summary",
                               "test_run_summary")
                 status.update(
@@ -768,9 +878,17 @@ def step_optimize(idx: int) -> None:
     st.write(
         "Prioritise the suite by risk and technique, and optionally minimise "
         "it — removing redundancy while keeping every requirement covered.")
+    st.caption(
+        "**Pick one button** (not both). *Prioritise* only reorders the suite "
+        "(High risk first, DT/ST > BVA > EP); the case count does not change. "
+        "*Minimise (risk-based)* additionally drops redundant Low/Medium "
+        "cases while keeping every requirement covered and every DT and ST "
+        "case intact. Both are **manual** — Step 6 stays empty until you "
+        "click. *Minimise* is the recommended demo because it exercises the "
+        "full FR 7.0.")
 
     cols = st.columns(2)
-    if cols[0].button("Prioritise", type="primary"):
+    if cols[0].button("Prioritise"):
         with st.status("Prioritising…") as status:
             df, summary = optimise_test_cases(
                 st.session_state.test_cases_df, st.session_state.risk_df,
@@ -779,7 +897,7 @@ def step_optimize(idx: int) -> None:
             st.session_state.optimization_summary = summary
             st.session_state.pop("test_run_summary", None)
             status.update(label="Prioritised.", state="complete")
-    if cols[1].button("Minimise (risk-based)"):
+    if cols[1].button("Minimise (risk-based) — Recommended", type="primary"):
         with st.status("Minimising…") as status:
             df, summary = optimise_test_cases(
                 st.session_state.test_cases_df, st.session_state.risk_df,
@@ -800,11 +918,41 @@ def step_optimize(idx: int) -> None:
         before = st.session_state.test_cases_df
         after = st.session_state.optimized_df
         if "test_design_technique" in before.columns:
-            chart = pd.DataFrame({
-                "Original": before["test_design_technique"].value_counts(),
-                "Optimised": after["test_design_technique"].value_counts(),
-            }).fillna(0)
-            st.bar_chart(chart)
+            # Grouped (side-by-side) bars per technique — st.bar_chart with
+            # two columns renders them stacked, which is misleading for a
+            # before/after comparison. Use Altair with xOffset to place the
+            # Original and Optimised bars next to each other.
+            try:
+                import altair as alt
+                bf = before["test_design_technique"].value_counts()
+                af = after["test_design_technique"].value_counts()
+                chart_df = (
+                    pd.DataFrame({"Original": bf, "Optimised": af})
+                    .fillna(0).astype(int)
+                    .rename_axis("technique").reset_index()
+                    .melt("technique", var_name="phase", value_name="count"))
+                phase_order = ["Original", "Optimised"]
+                grouped = (
+                    alt.Chart(chart_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("technique:N", title="Technique"),
+                        xOffset=alt.XOffset("phase:N", sort=phase_order),
+                        y=alt.Y("count:Q", title="Cases"),
+                        color=alt.Color(
+                            "phase:N", title="",
+                            sort=phase_order,
+                            scale=alt.Scale(domain=phase_order)),
+                        tooltip=["technique", "phase", "count"]))
+                st.altair_chart(grouped, width="stretch")
+            except Exception:
+                # Defensive fallback: keep the page usable if altair is
+                # missing for any reason.
+                chart = pd.DataFrame({
+                    "Original": before["test_design_technique"].value_counts(),
+                    "Optimised": after["test_design_technique"].value_counts(),
+                }).fillna(0)
+                st.bar_chart(chart)
         st.dataframe(after, width="stretch")
 
     # Optimisation is optional — the user can always advance.
@@ -876,68 +1024,86 @@ def _count_executable(cases: List[Dict[str, Any]]) -> int:
     return len(seen)
 
 
-def step_run(idx: int) -> None:
-    _step_header(idx)
-    st.write(
-        "Execute the test cases against the live backend through pytest and "
-        "view a per-case pass / fail report.")
-
-    source = st.radio(
-        "Test cases source",
-        ["Generated (current session)", "Optimised (current session)",
-         "Baseline (data/baseline)"],
-        index=0, horizontal=True)
-
-    if source == "Optimised (current session)":
-        cases = (st.session_state.optimized_df.to_dict(orient="records")
-                 if st.session_state.get("optimized_df") is not None else [])
-        if not cases:
-            st.info("No optimised set yet — run Step 6 or pick another source.")
-    elif source == "Baseline (data/baseline)":
-        try:
-            with open("data/baseline/test_cases.json", encoding="utf-8") as f:
-                cases = json.load(f).get("test_cases", [])
-        except FileNotFoundError:
-            st.error("Baseline file not found.")
-            cases = []
+def _load_baseline(kind: str) -> List[Dict[str, Any]]:
+    """Load one of the two persisted baselines from ``data/baseline/``."""
+    if kind == "optimised":
+        path = "data/baseline/test_cases_optimized.json"
+        key = "optimized_test_cases"
     else:
-        cases = st.session_state.test_cases_df.to_dict(orient="records")
+        path = "data/baseline/test_cases.json"
+        key = "test_cases"
+    try:
+        with open(path, encoding="utf-8") as f:
+            payload = json.load(f)
+        return payload.get(key) or payload.get("test_cases", [])
+    except FileNotFoundError:
+        st.error(f"Baseline file not found: {path}")
+        return []
 
+
+def _render_run_panel(cases: List[Dict[str, Any]],
+                      *, run_button_key: str,
+                      summary_session_key: str = "test_run_summary",
+                      mode_key_prefix: str = "run") -> None:
+    """Shared run-panel: backend probe, executable caption, run button,
+    and the post-run summary + per-case table. Reused by Step 0 (baseline
+    view) and Step 8 (current-session view)."""
     probe = _cached_probe(st.session_state.backend_url)
     if not probe["alive"]:
         st.warning(
             "Backend not reachable. Start it and refresh — see the sidebar.")
 
+    # Execution-mode toggle: by default, the harness collapses cases that
+    # share the same HTTP-template key (one representative per
+    # requirement × coverage type × event sequence). Enabling this option
+    # disables the collapse and executes every case as a separate HTTP
+    # request — primarily a diagnostic mode showing the two paths agree.
+    full_http_exec = st.checkbox(
+        "Run every case individually (no HTTP dedup) — diagnostic mode",
+        value=False, key=f"{mode_key_prefix}_full_exec",
+        help=("Default: representative-per-key execution. When enabled, "
+              "every case is executed as its own HTTP request; this is "
+              "slower but proves the deduplicated execution covers the "
+              "same observable behaviour."))
+
     if cases:
-        executable = _count_executable(cases)
+        executable = (len(cases) if full_http_exec
+                      else _count_executable(cases))
         st.caption(
             f"{len(cases)} generated · {executable} will execute → "
             f"{st.session_state.backend_url}")
-        if executable < len(cases):
+        if full_http_exec:
+            st.info(
+                f"ℹ️ Diagnostic mode is on — all {len(cases)} cases will "
+                "be executed individually, with no representative-per-key "
+                "collapse.")
+        elif executable < len(cases):
             st.info(
                 f"ℹ️ {len(cases)} cases collapse to {executable} HTTP "
                 "checks. The harness runs **one representative per "
-                "(requirement × coverage type)**: many generated cases "
-                "share the same requirement and type (e.g. five separate "
-                "'valid field' positives for one create-product request), "
-                "so executing each once avoids identical, redundant "
-                "requests. Every case still appears in the export and the "
-                "traceability matrix — only the live HTTP execution is "
-                "deduplicated.")
+                "(requirement × coverage type × event sequence)**: many "
+                "generated cases share the same HTTP-template key (e.g. "
+                "five 'valid field' positives for one create-product "
+                "request), so executing each once avoids identical, "
+                "redundant requests. Every case still appears in the "
+                "export and the traceability matrix — only the live HTTP "
+                "execution is deduplicated.")
     if st.button("▶ Run data-driven tests", type="primary",
+                 key=run_button_key,
                  disabled=not cases or not probe["alive"]):
         with st.status("Running pytest against the backend…",
                        expanded=True) as status:
             st.write("Spawning pytest subprocess.")
             summary = test_runner.run_data_driven_tests(
-                test_cases=cases, backend_url=st.session_state.backend_url)
-            st.session_state.test_run_summary = summary
+                test_cases=cases, backend_url=st.session_state.backend_url,
+                full_http_exec=full_http_exec)
+            st.session_state[summary_session_key] = summary
             status.update(
                 label=f"Done — {summary.passed} passed, {summary.failed} "
                 f"failed, {summary.skipped} skipped.",
                 state="complete" if summary.is_clean() else "error")
 
-    summary = st.session_state.get("test_run_summary")
+    summary = st.session_state.get(summary_session_key)
     if summary:
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Total", summary.total)
@@ -954,25 +1120,52 @@ def step_run(idx: int) -> None:
                          width="stretch", hide_index=True)
             for r in summary.results:
                 if r.outcome in ("failed", "error"):
-                    with st.expander(f"❌ {r.test_case_id} — {r.coverage_type}"):
+                    with st.expander(
+                            f"❌ {r.test_case_id} — {r.coverage_type}"):
                         st.code(r.message or "(no message)")
         with st.expander("Raw pytest output"):
             st.code(summary.raw_output or "(empty)")
 
+
+def step_run(idx: int) -> None:
+    _step_header(idx)
+    st.write(
+        "Execute the test cases against the live backend through pytest and "
+        "view a per-case pass / fail report. To execute the persisted "
+        "baseline instead, use the Welcome page (Step 0).")
+
+    source = st.radio(
+        "Test cases source",
+        ["Generated (current session)", "Optimised (current session)"],
+        index=0, horizontal=True, key="_run_source")
+
+    if source == "Optimised (current session)":
+        cases = (st.session_state.optimized_df.to_dict(orient="records")
+                 if st.session_state.get("optimized_df") is not None else [])
+        if not cases:
+            st.info(
+                "No optimised set yet — run Step 6 or switch back to "
+                "*Generated (current session)*.")
+    else:
+        cases = (st.session_state.test_cases_df.to_dict(orient="records")
+                 if st.session_state.get("test_cases_df") is not None else [])
+        if not cases:
+            st.info(
+                "No generated set in this session — start the pipeline "
+                "from Step 1, or use Step 0 (Welcome) to execute the "
+                "persisted baseline.")
+
+    _render_run_panel(cases, run_button_key="_run_session",
+                      summary_session_key="test_run_summary",
+                      mode_key_prefix="run")
     _nav_footer(idx, can_advance=False)
-    st.divider()
-    if st.button("↺ Start a new run (reset pipeline)"):
-        for k in list(st.session_state.keys()):
-            if k not in ("backend_url",):
-                del st.session_state[k]
-        st.rerun()
 
 
 # ===========================================================================
 # Router
 # ===========================================================================
 
-_RENDERERS = [step_input, step_parse, step_risk, step_coverage,
+_RENDERERS = [step_landing, step_input, step_parse, step_risk, step_coverage,
               step_cases, step_optimize, step_export, step_run]
 
 
