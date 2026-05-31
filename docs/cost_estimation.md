@@ -130,7 +130,7 @@ recorded in Table 4.
 | **Per full session** | 37,153 | **≈ 0.1943** | **≈ 0.0972** |
 
 A complete pipeline run over twelve requirements costs approximately
-¥0.20 at list price (approximately US$0.03), or about half that
+¥0.19 at list price (approximately US$0.03), or about half that
 amount under batch pricing. The risk stage dominates because it
 issues one call per requirement and the four-dimension rationale is
 verbose; batching, caching, or de-duplicating identical requirements

@@ -28,6 +28,13 @@ from typing import Any, Dict, List, Optional
 
 # Technique labels (kept in sync with testcase_generator.py)
 TECH_DT = "Decision Table Testing"
+TECH_ST = "State Transition Testing"
+
+# Techniques whose cases the minimiser keeps in full. Each member is
+# functionally non-redundant: a DT row encodes a distinct condition
+# combination; an ST row encodes a distinct edge in the state machine —
+# dropping any one of them removes coverage rather than redundancy.
+_KEEP_ALL_TECHNIQUES = (TECH_DT, TECH_ST)
 
 # ---------------------------------------------------------------------------
 # Ranking tables (higher == more important == sorted earlier)
@@ -47,6 +54,7 @@ _TYPE_RANK = {
 
 _TECH_RANK = {
     "Decision Table Testing": 3,
+    "State Transition Testing": 3,
     "Boundary Value Analysis": 2,
     "Equivalence Partitioning": 1,
     "Manual Review": 0,
@@ -187,24 +195,35 @@ def _minimize_group(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     if group_risk >= 3:  # High -> keep more
         return ordered
 
-    if group_risk == 2:  # Medium -> representative per type + all DT cases
-        dt = [c for c in ordered
-              if c.get("test_design_technique") == TECH_DT]
+    if group_risk == 2:  # Medium -> representative per type + all DT/ST cases
+        keep_all = [c for c in ordered
+                    if c.get("test_design_technique") in _KEEP_ALL_TECHNIQUES]
         rep = _dedupe_by_type(ordered)
         # union while preserving prioritised order
         kept_ids = set()
         result = []
         for c in ordered:
-            if c in rep or c in dt:
+            if c in rep or c in keep_all:
                 key = id(c)
                 if key not in kept_ids:
                     kept_ids.add(key)
                     result.append(c)
         return result if result else ordered[:1]
 
-    # Low -> reduce duplicates, keep one per type, guarantee >= 1
+    # Low -> reduce duplicates, keep one per type, plus all DT/ST,
+    #        guarantee >= 1
     reduced = _dedupe_by_type(ordered)
-    return reduced if reduced else ordered[:1]
+    keep_all = [c for c in ordered
+                if c.get("test_design_technique") in _KEEP_ALL_TECHNIQUES]
+    kept_ids = set()
+    result = []
+    for c in ordered:
+        if c in reduced or c in keep_all:
+            key = id(c)
+            if key not in kept_ids:
+                kept_ids.add(key)
+                result.append(c)
+    return result if result else ordered[:1]
 
 
 def minimize_test_suite(test_cases: List[Dict[str, Any]],

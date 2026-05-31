@@ -84,11 +84,15 @@ in proportion to risk level. The rule is recorded in Table 2.
 | Risk level | Depth | Concrete behaviour |
 |---|---|---|
 | High | Maximum | Every generated case is retained; boundary, negative, and decision-table cases receive the most defence. |
-| Medium | Balanced | One representative per coverage type is retained, together with every decision-table case. |
-| Low | Minimal | Cases are deduplicated by coverage type; at least one case is always retained per requirement. |
+| Medium | Balanced | One representative per coverage type is retained, together with every decision-table and state-transition case. |
+| Low | Minimal | Cases are deduplicated by coverage type, together with every decision-table and state-transition case; at least one case is always retained per requirement. |
 
 Prioritisation respects the same intent: higher risk, stronger
-technique, and harder coverage type are scheduled first.
+technique, and harder coverage type are scheduled first. Decision-
+table and state-transition cases are never dropped because each row
+encodes a distinct condition combination or a distinct edge in the
+state machine; removing any one of them removes coverage rather than
+redundancy.
 
 ---
 
@@ -111,7 +115,9 @@ persisted baseline. Aggregate counts are recorded in Tables 3 to 5.
 | Black-box test cases generated | 61 |
 | White-box state-transition cases | 4 |
 | Total cases in the baseline | 65 |
-| After risk-based minimisation (black box) | 55 |
+| After risk-based minimisation (black box retained) | 57 |
+| After risk-based minimisation (white-box ST retained) | 4 |
+| After risk-based minimisation (total) | 61 |
 
 **Table 4.** Distribution by technique.
 
@@ -150,6 +156,10 @@ confidence:
   miss.
 - *High-risk requirements* are left untouched; the additional
   execution time is inexpensive in comparison with a missed defect.
+- *White-box state-transition cases* are retained in full at every
+  risk level, because each case encodes a distinct edge of the state
+  machine and the absence of any one of them would leave a transition
+  guard unverified.
 
 The optimiser guarantees that no requirement is left uncovered, so
 the minimised suite never abandons a requirement.
@@ -175,10 +185,11 @@ The strategy is defensive at three points:
 The strategy applies the three coverage decisions — what, how, to
 what depth — under the risk-based testing principle. Its application
 to the Mini-E-Commerce backend produces a sixty-five-case baseline
-(sixty-one black-box cases that minimise to fifty-five while
-preserving full coverage, plus four white-box state-transition
-cases), and concentrates effort on the order workflow at which the
-three real defects of
+(sixty-one black-box cases plus four white-box state-transition
+cases) that the optimiser minimises to sixty-one cases (fifty-seven
+black-box plus the four state-transition cases) while preserving full
+requirement coverage, and concentrates effort on the order workflow
+at which the three real defects of
 [test_result_analysis.md](test_result_analysis.md) are detected.
 
 ---

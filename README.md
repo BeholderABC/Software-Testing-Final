@@ -223,8 +223,14 @@ port without restarting Streamlit.
 
 ### 5.3 The Nine-Step Workflow
 
-The user interface presents nine stages, summarised below.
+The user interface presents a Welcome page followed by eight pipeline
+steps, summarised below.
 
+0. **Welcome** — the entry page. From here a reviewer can either
+   execute the persisted baseline (`data/baseline/test_cases.json`
+   or its optimised counterpart) against the live backend without
+   running the design pipeline, or press *Start the full pipeline →*
+   to advance to Step 1.
 1. **Requirement input** — paste text or upload a CSV.
 2. **Requirement structuring** — parsed JSON, editable.
 3. **Risk analysis** — `risk_level`, `risk_score`, and factors,
@@ -240,8 +246,10 @@ The user interface presents nine stages, summarised below.
 7. **Export** — CSV, JSON, and Excel into `outputs/` (FR 6.0).
 8. **Run tests** — execute pytest against the target backend; a
    coloured table records per-case PASS, FAIL, or SKIPPED with
-   expandable error stacks.
-9. **Evidence checklist** — screenshot guide for the report.
+   expandable error stacks. A *"Run every case individually"*
+   checkbox toggles between the default representative-per-key
+   execution and the diagnostic mode that issues every case as its
+   own HTTP request (see [test_result_analysis.md](docs/test_result_analysis.md) §2.1).
 
 Every editable step employs `st.data_editor`. When the tester modifies
 a table, the cached downstream artefacts are invalidated automatically
@@ -252,18 +260,26 @@ assignment's interactive-review requirement.
 
 The intended demonstration sequence is recorded below.
 
-1. Steps 1 to 5 — the requirements are entered and the tool produces
-   approximately fifty structured test cases with full traceability
-   and an attached oracle.
-2. Step 6 — pressing *Minimise (risk-based)* demonstrates FR 7.0; the
-   before-and-after chart shows cases being removed without any
-   requirement being dropped.
-3. Step 8 — pressing *Run Data-Driven Tests* fires pytest at the live
-   backend; the results land in a coloured table.
-4. Step 4 — a coverage item is edited (for example, tightening an
+1. Welcome — *Start the full pipeline →*.
+2. Steps 1 to 5 — the requirements are entered and the tool produces
+   sixty-five structured test cases (sixty-one black-box and four
+   white-box state-transition) with full traceability and an attached
+   oracle.
+3. Step 6 — *Minimise (risk-based)* demonstrates FR 7.0; the
+   before-and-after grouped bar chart shows the suite reducing from
+   sixty-five to sixty-one cases while every requirement and every
+   decision-table or state-transition case is retained.
+4. Step 8 — *Run Data-Driven Tests* fires pytest at the live backend;
+   the per-case table reports the outcome.
+5. Step 4 — a coverage item is edited (for example, tightening an
    expected behaviour).
-5. Step 8 is revisited — the results change in place, evidencing that
+6. Step 8 is revisited — the results change in place, evidencing that
    interactive review reaches all the way through execution.
+
+A reviewer who only wishes to inspect the persisted baseline can
+remain on the Welcome page (Step 0), select *Baseline — raw* or
+*Baseline — optimised* and click *Run Data-Driven Tests* directly,
+without entering the design pipeline.
 
 ### 5.5 Running the Tests from the Command Line
 
@@ -276,6 +292,9 @@ backend. The integration suite at
 backend is running on `127.0.0.1:8000`.
 
 ```bash
+# All Tests
+.venv/bin/python -m pytest tests/
+
 # Offline: tool unit tests, omitting the two LLM smoke tests by default
 .venv/bin/python -m pytest tests/unit/ -v \
   --ignore=tests/unit/parser_test.py \
@@ -308,18 +327,6 @@ GENERATED_TEST_CASES=outputs/test_cases_<timestamp>.json \
 The environment variable `BACKEND_BASE_URL` overrides the default
 backend URL and is read by the hand-written tests, the data-driven
 harness, and the in-UI runner.
-
-To persist the offline result for the report, the offline suite can be
-run through [scripts/run_offline_tests.py](scripts/run_offline_tests.py),
-which executes the same `tests/unit/` suite (excluding the two LLM
-smoke tests) and writes three timestamped artefacts into `outputs/`:
-a JUnit XML, a parsed JSON of per-case results, and a Markdown summary
-table.
-
-```bash
-.venv/bin/python scripts/run_offline_tests.py
-# -> outputs/offline_tests_<timestamp>.{xml,json,md}
-```
 
 ### 5.6 Benchmarking the Pipeline
 

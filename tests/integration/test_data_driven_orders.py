@@ -20,6 +20,7 @@ manual translation step.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, List
 
 import pytest
@@ -107,7 +108,6 @@ def pytest_generate_tests(metafunc):
     # Cache the resolved cases on the config so collection is O(1) per session.
     cases = getattr(metafunc.config, "_tmp_test_cases", None)
     if cases is None:
-        import os
         from tests.integration import conftest as _cf
         explicit = os.getenv("GENERATED_TEST_CASES")
         path = (_cf.Path(explicit) if explicit else
@@ -115,7 +115,17 @@ def pytest_generate_tests(metafunc):
         cases = _cf._load_test_cases_payload(path) if path.exists() else []
         metafunc.config._tmp_test_cases = cases
 
-    executable = _dedupe_by_template_key(_filter_executable(cases))
+    filtered = _filter_executable(cases)
+    # The harness collapses cases that share the same HTTP-template key
+    # by default, because every case in such a group produces a
+    # byte-identical request (same URL, headers and body, same oracle).
+    # Set ``FULL_HTTP_EXEC=1`` in the environment to disable the dedup
+    # and exercise every case as a separate HTTP request — useful as a
+    # diagnostic check that the two modes agree.
+    if os.getenv("FULL_HTTP_EXEC") in ("1", "true", "True"):
+        executable = filtered
+    else:
+        executable = _dedupe_by_template_key(filtered)
     metafunc.parametrize(
         "generated_case", executable, ids=[_case_id(tc) for tc in executable])
 

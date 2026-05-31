@@ -116,10 +116,15 @@ _PROXY_ENV_VARS = (
 )
 
 
-def _build_env(backend_url: str, test_cases_path: Path) -> Dict[str, str]:
+def _build_env(backend_url: str, test_cases_path: Path,
+               full_http_exec: bool = False) -> Dict[str, str]:
     env = os.environ.copy()
     env["BACKEND_BASE_URL"] = backend_url
     env["GENERATED_TEST_CASES"] = str(test_cases_path)
+    if full_http_exec:
+        env["FULL_HTTP_EXEC"] = "1"
+    else:
+        env.pop("FULL_HTTP_EXEC", None)
 
     # A local backend must never be reached through a proxy. A SOCKS/HTTP
     # proxy inherited from the shell (common on macOS) would hijack the
@@ -238,14 +243,22 @@ def run_data_driven_tests(test_cases: List[Dict[str, Any]],
                           backend_url: str = DEFAULT_BACKEND_URL,
                           harness: str = DEFAULT_HARNESS,
                           timeout: float = 120.0,
-                          project_root: Optional[Path] = None) -> RunSummary:
+                          project_root: Optional[Path] = None,
+                          full_http_exec: bool = False) -> RunSummary:
     """Run the data-driven harness against `test_cases` and parse the result.
 
     Returns a RunSummary populated with per-case rows and aggregate counts.
+
+    When ``full_http_exec`` is True the harness is told (via the
+    ``FULL_HTTP_EXEC=1`` environment variable) to *not* collapse cases
+    that share the same ``(requirement_id, coverage_type,
+    event_sequence)`` key. Every case is then exercised as a separate
+    HTTP request. This is the diagnostic mode used to demonstrate that
+    the deduplicated and full executions agree.
     """
     root = project_root or PROJECT_ROOT
     cases_path = write_test_cases(test_cases, root / "outputs")
-    env = _build_env(backend_url, cases_path)
+    env = _build_env(backend_url, cases_path, full_http_exec=full_http_exec)
 
     try:
         completed = subprocess.run(

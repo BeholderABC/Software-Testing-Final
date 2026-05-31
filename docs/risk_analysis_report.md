@@ -65,18 +65,21 @@ defines the dimensions.
 | `failure_impact` | How damaging would an undetected defect be? |
 
 The headline `risk_score` is computed from the four ratings rather
-than elicited from the model: the sum of the four ratings,
-in 4–12, is linearly mapped onto the canonical interval 1–10. The
-risk level then follows the conventional mapping (Table 2;
-[STYLE_GUIDE.md](STYLE_GUIDE.md) §4.2).
+than elicited from the model: the sum of the four ratings, in the
+inclusive range 4–12, is linearly rescaled onto the canonical
+interval 1–10. The minimum achievable `risk_score` is therefore 1
+(every dimension rated 1) and the maximum is 10 (every dimension
+rated 3); the value 0 cannot occur. The risk level then follows the
+conventional mapping (Table 2; [STYLE_GUIDE.md](STYLE_GUIDE.md) §4.2),
+which applies to the rescaled `risk_score` and not to the raw sum.
 
-**Table 2.** Score-to-level mapping.
+**Table 2.** Score-to-level mapping (applied to the rescaled `risk_score`).
 
-| Score | Level |
-|---|---|
-| 1 – 3 | Low |
-| 4 – 7 | Medium |
-| 8 – 10 | High |
+| `risk_score` | Level | Raw four-dimension sum |
+|---|---|---|
+| 1 – 3 | Low | 4 – 5 |
+| 4 – 7 | Medium | 6 – 9 |
+| 8 – 10 | High | 10 – 12 |
 
 Because the score is a transparent function of the dimensions, the
 headline value, the per-dimension ratings, and the prose justifications
@@ -208,8 +211,9 @@ of each requirement, in accordance with the rule defined in
 The three High-risk requirements — all on the order workflow (order
 creation, stock reduction, product update) — therefore receive the
 deepest coverage. This is the locus at which a defect would carry the
-greatest cost, and, as §7 records, the locus at which the two
-detected defects were in fact found.
+greatest cost, and, as §7 records, the locus at which two of the
+three detected defects were in fact found, with the third arising in
+the order-status state machine.
 
 ---
 
