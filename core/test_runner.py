@@ -244,7 +244,8 @@ def run_data_driven_tests(test_cases: List[Dict[str, Any]],
                           harness: str = DEFAULT_HARNESS,
                           timeout: float = 120.0,
                           project_root: Optional[Path] = None,
-                          full_http_exec: bool = False) -> RunSummary:
+                          full_http_exec: bool = False,
+                          output_dir: Optional[Path] = None) -> RunSummary:
     """Run the data-driven harness against `test_cases` and parse the result.
 
     Returns a RunSummary populated with per-case rows and aggregate counts.
@@ -257,7 +258,13 @@ def run_data_driven_tests(test_cases: List[Dict[str, Any]],
     the deduplicated and full executions agree.
     """
     root = project_root or PROJECT_ROOT
-    cases_path = write_test_cases(test_cases, root / "outputs")
+    cases_dir = Path(output_dir) if output_dir else (root / "outputs")
+    # Resolve a relative output_dir (e.g. "outputs/run_<ts>/runs") against
+    # the project root so the payload path stays under root and the
+    # relative_to(root) below cannot raise.
+    if not cases_dir.is_absolute():
+        cases_dir = root / cases_dir
+    cases_path = write_test_cases(test_cases, cases_dir)
     env = _build_env(backend_url, cases_path, full_http_exec=full_http_exec)
 
     try:
@@ -287,6 +294,11 @@ def run_data_driven_tests(test_cases: List[Dict[str, Any]],
         for r in results:
             r.duration_ms = per_case
 
+    try:
+        cases_rel = str(cases_path.relative_to(root))
+    except ValueError:
+        cases_rel = str(cases_path)
+
     return RunSummary(
         total=len(results),
         passed=summary["passed"],
@@ -295,7 +307,7 @@ def run_data_driven_tests(test_cases: List[Dict[str, Any]],
         errors=summary["errors"],
         duration_seconds=summary["duration"],
         backend_url=backend_url,
-        test_cases_path=str(cases_path.relative_to(root)),
+        test_cases_path=cases_rel,
         raw_output=stdout,
         return_code=return_code,
         results=results,
