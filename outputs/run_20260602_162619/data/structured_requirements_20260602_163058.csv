@@ -1,0 +1,13 @@
+﻿requirement_id,raw_requirement,input_fields,data_ranges,conditions,expected_action,target_module
+REQ-001,Display product catalog,,valid input,system retrieves product list,"system returns all products including name, description, price, and stock fields",Product Management
+REQ-002,View product details,product_id,product_id:required,user requests product details,system returns detailed information for the specified product_id,Product Management
+REQ-003,Create new product,"name, description, price, stock, user_role","user_role in ['admin'], name:required, description:required, price:required, stock:required",admin submits product creation request,system creates a new product record and returns success confirmation,Product Management
+REQ-004,Update existing product,"product_id, updates, user_role","user_role in ['admin'], product_id:required",admin submits product update request,system modifies the specified product record and returns updated data,Product Management
+REQ-005,Delete product,"product_id, user_role","user_role in ['admin'], product_id:required",admin requests product deletion,system removes the specified product from the catalog,Product Management
+REQ-006,Create order,"items, customer_info","items in [1, ?]",user submits order request,system accepts the order and generates a unique order ID,Order Processing
+REQ-007,Validate order items,items,"items in [1, ?]",items array is empty,system rejects the order and returns validation error,Order Processing
+REQ-008,Validate customer information,customer_info,customer_info:required,customer information is missing or null,system rejects the order and returns validation error,Order Processing
+REQ-009,Validate stock availability,"requested_quantity, available_stock",requested_quantity <= available_stock,requested quantity is greater than available stock,system rejects the order and returns stock insufficient error,Order Processing
+REQ-010,Deduct stock on order completion,"order_items, product_stock",valid input,order is successfully processed,system decrements product stock by ordered quantities,Order Processing
+REQ-011,View order details,order_id,order_id:required,user requests order details,system returns detailed information for the specified order_id,Order Processing
+REQ-012,Update order status,"order_id, status, user_role","user_role in ['admin'], status in ['pending', 'completed', 'cancelled']",admin submits status update request,system updates the order status and returns confirmation,Order Processing
