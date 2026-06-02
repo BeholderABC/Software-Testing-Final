@@ -58,6 +58,7 @@ recorded in Table 2.
 | In-UI subprocess PyTest runner with parsed report | [core/test_runner.py](core/test_runner.py) |
 | Interactive review (edit, then regenerate downstream artefacts) | Streamlit UI ([app.py](app.py)) |
 | Data-driven execution against the target backend | [tests/integration/test_data_driven_orders.py](tests/integration/test_data_driven_orders.py) |
+| Auto-generation of the three IEEE 829 deliverable reports (LLM-first, rule fallback) | [core/report_pipeline.py](core/report_pipeline.py), [core/report_llm.py](core/report_llm.py), [core/report_generator.py](core/report_generator.py) |
 
 The mapping from each functional requirement of the assignment to its
 implementation is recorded in Table 3.
@@ -94,6 +95,10 @@ implementation is recorded in Table 3.
 │   ├── optimizer.py                      # Prioritise + minimise (FR 7.0)
 │   ├── exporter.py                       # CSV / JSON / Excel writers
 │   ├── test_runner.py                    # In-UI subprocess PyTest runner
+│   ├── report_pipeline.py                # Orchestrates deliverable-doc generation
+│   ├── report_llm.py                     # LLM-first report writer (per-doc prompt)
+│   ├── report_generator.py               # Deterministic report fallback (IEEE 829)
+│   ├── run_context.py                    # Per-run outputs/run_<ts>/ directories
 │   └── utils.py                          # Loaders and JSON helpers
 ├── prompts/                              # System prompts for the LLM stages
 ├── schema/                               # JSON schema files
@@ -133,7 +138,7 @@ implementation is recorded in Table 3.
 │   ├── benchmark.py                      # Measures latency + LLM token cost → benchmark_report.md
 │   ├── build_traceability.py             # Regenerates the traceability matrix
 │   └── run_offline_tests.py              # Runs the offline unit suite → outputs/offline_tests_*
-├── outputs/                              # Timestamped export artefacts (gitignored)
+├── outputs/                              # Per-run artefacts: run_<ts>/docs (reports) + data (exports)
 ├── screenshots/                          # Workflow screenshots for the report
 └── requirements.txt                      # Python dependencies
 ```
@@ -176,8 +181,9 @@ MODEL=gpt-4o-mini
 ```
 
 When no key is configured the tool nevertheless runs end-to-end: the
-LLM-backed parser and risk analyser fall back to the deterministic
-rule engine. The active path is displayed in the sidebar, so the
+three LLM-backed stages — the parser, the risk analyser, and the
+deliverable-report writer — fall back to their deterministic rule
+engines. The active path is displayed in the sidebar, so the
 demonstration remains robust when the network or the API quota is
 unavailable.
 
@@ -250,6 +256,11 @@ steps, summarised below.
    checkbox toggles between the default representative-per-key
    execution and the diagnostic mode that issues every case as its
    own HTTP request (see [test_result_analysis.md](docs/test_result_analysis.md) §2.1).
+   Once a run has been recorded, a gated *Generate deliverable
+   documents* control renders the three IEEE 829 reports (risk
+   analysis, test plan, detailed design and execution) into
+   `outputs/run_<timestamp>/docs/`, embedding the run results;
+   generation is LLM-first with a deterministic rule fallback.
 
 Every editable step employs `st.data_editor`. When the tester modifies
 a table, the cached downstream artefacts are invalidated automatically

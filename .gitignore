@@ -221,8 +221,13 @@ __marimo__/
 .DS_Store
 _drafts
 
-# AutoTestDesign runtime artefacts (kept locally, never committed).
-# The outputs/ directory itself is preserved by its .gitkeep so the
-# path always exists.
+# AutoTestDesign per-run outputs.
+# Each run's directory (outputs/run_<ts>/, holding its generated docs/ and
+# exported data/) IS tracked so a single test run is self-contained and
+# reviewable in git. Everything else under outputs/ is transient scratch
+# and is ignored: any loose root-level artefact (legacy exports, harness
+# payloads), and each run's runs/ payloads handed to the pytest subprocess.
 outputs/*
 !outputs/.gitkeep
+!outputs/run_*/
+outputs/run_*/runs/

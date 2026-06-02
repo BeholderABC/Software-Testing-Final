@@ -1,0 +1,44 @@
+﻿coverage_item_id,requirement_id,target_module,coverage_item,coverage_type,coverage_strategy,priority
+CI-001,REQ-001,"The system shall display all products with name, description, price, and stock.",existing request,positive,Equivalence Partitioning,Medium
+CI-002,REQ-001,"The system shall display all products with name, description, price, and stock.",non-existing request,negative,Equivalence Partitioning,Medium
+CI-003,REQ-001,"The system shall display all products with name, description, price, and stock.",null request,boundary,Boundary Value Analysis,Medium
+CI-004,REQ-002,The system shall allow users to view product details by product ID.,existing request,positive,Equivalence Partitioning,Low
+CI-005,REQ-002,The system shall allow users to view product details by product ID.,non-existing request,negative,Equivalence Partitioning,Low
+CI-006,REQ-002,The system shall allow users to view product details by product ID.,null request,boundary,Boundary Value Analysis,Low
+CI-007,REQ-003,"The system shall allow admin users to create a new product with name, descriptio",existing product_id,positive,Equivalence Partitioning,Medium
+CI-008,REQ-003,"The system shall allow admin users to create a new product with name, descriptio",non-existing product_id,negative,Equivalence Partitioning,Medium
+CI-009,REQ-003,"The system shall allow admin users to create a new product with name, descriptio",null product_id,boundary,Boundary Value Analysis,Medium
+CI-010,REQ-004,The system shall allow admin users to update an existing product.,existing product_id,positive,Equivalence Partitioning,Low
+CI-011,REQ-004,The system shall allow admin users to update an existing product.,non-existing product_id,negative,Equivalence Partitioning,Low
+CI-012,REQ-004,The system shall allow admin users to update an existing product.,null product_id,boundary,Boundary Value Analysis,Low
+CI-013,REQ-005,The system shall allow admin users to delete a product.,existing product_id,positive,Equivalence Partitioning,Low
+CI-014,REQ-005,The system shall allow admin users to delete a product.,non-existing product_id,negative,Equivalence Partitioning,Low
+CI-015,REQ-005,The system shall allow admin users to delete a product.,null product_id,boundary,Boundary Value Analysis,Low
+CI-016,REQ-006,The system shall allow users to create an order with one or more products.,existing product_id,positive,Equivalence Partitioning,Medium
+CI-017,REQ-006,The system shall allow users to create an order with one or more products.,non-existing product_id,negative,Equivalence Partitioning,Medium
+CI-018,REQ-006,The system shall allow users to create an order with one or more products.,null product_id,boundary,Boundary Value Analysis,Medium
+CI-019,REQ-007,The system shall reject an order if the items array is empty.,items = 0,boundary,Boundary Value Analysis,High
+CI-020,REQ-007,The system shall reject an order if the items array is empty.,items = 1,boundary,Boundary Value Analysis,High
+CI-021,REQ-007,The system shall reject an order if the items array is empty.,items = 2,boundary,Boundary Value Analysis,High
+CI-022,REQ-008,The system shall reject an order if customer information is missing.,customer_name is a legal value,positive,Equivalence Partitioning,High
+CI-023,REQ-008,The system shall reject an order if customer information is missing.,customer_name is empty,boundary,Boundary Value Analysis,High
+CI-024,REQ-008,The system shall reject an order if customer information is missing.,customer_phone is a legal value,positive,Equivalence Partitioning,High
+CI-025,REQ-008,The system shall reject an order if customer information is missing.,customer_phone is empty,boundary,Boundary Value Analysis,High
+CI-026,REQ-008,The system shall reject an order if customer information is missing.,customer_address is a legal value,positive,Equivalence Partitioning,High
+CI-027,REQ-008,The system shall reject an order if customer information is missing.,customer_address is empty,boundary,Boundary Value Analysis,High
+CI-028,REQ-009,The system shall reject an order if requested quantity exceeds available stock.,quantity less than stock,positive,Equivalence Partitioning,High
+CI-029,REQ-009,The system shall reject an order if requested quantity exceeds available stock.,quantity equals stock,boundary,Boundary Value Analysis,High
+CI-030,REQ-009,The system shall reject an order if requested quantity exceeds available stock.,quantity greater than stock,negative,Equivalence Partitioning,High
+CI-031,REQ-010,The system shall automatically reduce product stock after a successful order.,existing request,positive,Equivalence Partitioning,Medium
+CI-032,REQ-010,The system shall automatically reduce product stock after a successful order.,non-existing request,negative,Equivalence Partitioning,Medium
+CI-033,REQ-010,The system shall automatically reduce product stock after a successful order.,null request,boundary,Boundary Value Analysis,Medium
+CI-034,REQ-011,The system shall allow users to view order details by order ID.,existing order_id,positive,Equivalence Partitioning,Medium
+CI-035,REQ-011,The system shall allow users to view order details by order ID.,non-existing order_id,negative,Equivalence Partitioning,Medium
+CI-036,REQ-011,The system shall allow users to view order details by order ID.,null order_id,boundary,Boundary Value Analysis,Medium
+CI-037,REQ-012,"The system shall allow admin users to update order status to pending, completed,", pending in enumeration,positive,Equivalence Partitioning,Medium
+CI-038,REQ-012,"The system shall allow admin users to update order status to pending, completed,", completed in enumeration,positive,Equivalence Partitioning,Medium
+CI-039,REQ-012,"The system shall allow admin users to update order status to pending, completed,", cancelled in enumeration,positive,Equivalence Partitioning,Medium
+CI-040,REQ-012,"The system shall allow admin users to update order status to pending, completed,",contains input out of allowed enumeration,negative,Equivalence Partitioning,Medium
+CI-041,REQ-013,Test.,existing request,positive,Equivalence Partitioning,Low
+CI-042,REQ-013,Test.,non-existing request,negative,Equivalence Partitioning,Low
+CI-043,REQ-013,Test.,null request,boundary,Boundary Value Analysis,Low

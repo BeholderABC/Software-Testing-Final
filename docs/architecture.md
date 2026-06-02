@@ -30,7 +30,9 @@ flowchart TB
         UI["Streamlit UI<br/>app.py · 9 steps"]
         Core["Pipeline engine<br/>core/*"]
         Artifacts[("test_cases_*.json<br/>+ CSV + Excel")]
+        Docs[("3 IEEE 829 reports<br/>risk · plan · detailed")]
         UI --> Core --> Artifacts
+        Core --> Docs
     end
 
     subgraph layerB [Layer B — Execution against the target]
@@ -46,7 +48,7 @@ flowchart TB
     Artifacts -- "feeds" --> Pytest
     Report -- "renders inside" --> UI
 
-    class UI,Core,Artifacts toolBox
+    class UI,Core,Artifacts,Docs toolBox
     class Pytest,Report testBox
     class SUT sutBox
 ```
@@ -57,7 +59,11 @@ Layer A is responsible for producing evidence in the form of
 structured test artefacts. Layer B is responsible for translating
 that evidence into verdicts. Step 8 of the user interface closes the
 loop by triggering the PyTest run from within the same browser
-session that produced the artefacts.
+session that produced the artefacts. Once a run has been recorded,
+Layer A additionally renders the three IEEE 829 deliverable reports —
+the risk-analysis report, the test plan, and the detailed test design
+and execution report — embedding the execution results so that the
+documents are evidence-backed rather than hand-written.
 
 ---
 
@@ -94,9 +100,10 @@ flowchart LR
         Optimizer["optimizer.py<br/>prioritise · minimise"]
         Exporter["exporter.py<br/>CSV · JSON · Excel"]
         Runner["test_runner.py<br/>subprocess pytest"]
+        Reports["report_pipeline.py<br/>LLM-first deliverable docs<br/>(report_llm.py · report_generator.py fallback)"]
     end
 
-    Outputs[("outputs/<br/>test_cases_*.json<br/>+ CSV + xlsx")]
+    Outputs[("outputs/run_&lt;ts&gt;/<br/>test_cases_*.json · CSV · xlsx<br/>+ docs/ (IEEE 829 reports)")]
     Backend[/"Mini-E-Commerce backend"/]
 
     Input --> Scheduler
@@ -116,13 +123,16 @@ flowchart LR
     Oracle --> Optimizer
     Optimizer --> Exporter
     Scheduler --> Runner
+    Scheduler --> Reports
+    Env -.-> Reports
     Editor -. "edits invalidate downstream" .- Scheduler
 
     Exporter --> Outputs
     Runner --> Backend
     Runner --> Outputs
+    Reports --> Outputs
 
-    class Parser,Risk llm
+    class Parser,Risk,Reports llm
     class Coverage,TestGen,Oracle,StateModel,Optimizer,Exporter,Runner,Fallback rule
     class Scheduler,Editor ui
     class Outputs out
@@ -141,6 +151,15 @@ flowchart LR
 | Mint | Persistent output artefact |
 | Purple | External boundary (input / backend) |
 
+The report subsystem (`report_pipeline.py`) is the third and final
+LLM-backed stage. Like the parser and the risk analyser it is
+*LLM-first with a deterministic fallback*: when a model is configured
+it drives `report_llm.py` (one prompt per document under `prompts/`),
+and when no model is reachable it degrades to `report_generator.py`,
+which renders the same IEEE 829 section structure from the in-memory
+pipeline artefacts. Every other node in the engine is reproducible
+rule code.
+
 ---
 
 ## 3. Nine-Step Workflow
@@ -155,17 +174,19 @@ flowchart LR
     classDef step fill:#dbeafe,stroke:#1d4ed8,color:#0c1e3f
     classDef sink fill:#ecfdf5,stroke:#047857,color:#022c22
 
-    s1["1 · Requirement<br/>Input"]
-    s2["2 · Requirement<br/>Structuring"]
+    s0["0 · Welcome<br/>baseline or full run"]
+    s1["1 · Requirement<br/>Input · FR 1.0"]
+    s2["2 · Requirement<br/>Structuring · FR 1.1"]
     s3["3 · Risk Analysis<br/>FR 2.0"]
     s4["4 · Coverage<br/>Items"]
     s5["5 · Test Cases<br/>FR 3.0 · FR 4.0 · FR 5.0"]
     s6["6 · Optimisation<br/>FR 7.0"]
-    s7["7 · Export<br/>FR 6.0"]
-    s8["8 · Run Tests<br/>end-to-end"]
-    s9["9 · Evidence<br/>Checklist"]
+    s7["7 · Export · FR 6.0"]
+    s8["8 · Run Tests +<br/>Generate deliverable docs"]
+    docs[("outputs/run_&lt;ts&gt;/docs/<br/>3 IEEE 829 reports")]
 
-    s1 --> s2 --> s3 --> s4 --> s5 --> s6 --> s7 --> s8 --> s9
+    s0 --> s1 --> s2 --> s3 --> s4 --> s5 --> s6 --> s7 --> s8
+    s8 --> docs
 
     s2 -. edit .-> s2
     s3 -. edit .-> s3
@@ -173,7 +194,8 @@ flowchart LR
     s5 -. "edit invalidates" .-> s6
     s8 -. "reads current<br/>session" .-> s5
 
-    class s1,s2,s3,s4,s5,s6,s7,s8,s9 step
+    class s0,s1,s2,s3,s4,s5,s6,s7,s8 step
+    class docs sink
 ```
 
 *Figure 3.* Nine-step workflow exposed by the user interface.
@@ -183,6 +205,14 @@ invalidates the cached downstream artefacts, which are regenerated on
 the next visit. Step 8 reads the current session's test cases
 directly, so editing a coverage item in Step 4 changes what is sent
 to the backend in Step 8 without leaving the browser.
+
+Step 8 carries a second responsibility. Once at least one run has
+been recorded, a gated *Generate deliverable documents* control
+renders the three IEEE 829 reports into
+`outputs/run_<timestamp>/docs/`, embedding that run's execution
+results. Because the documents quote real verdicts they can only be
+produced after a run, which is why generation lives at the end of the
+workflow rather than alongside the export at Step 7.
 
 ---
 
@@ -262,6 +292,10 @@ sequenceDiagram
     Be-->>Pytest: 400 "Quantity must be > 0"
     Pytest-->>App: TC-REQ-009-002 PASSED
     App-->>U: results table · failed rows expandable
+    U->>App: Generate deliverable documents
+    App->>Engine: generate_reports() · LLM-first
+    Engine-->>App: 3 IEEE 829 docs → outputs/run_*/docs/
+    App-->>U: download links + per-doc time / token / cost
 ```
 
 *Figure 5.* End-to-end runtime trace for REQ-009.
@@ -359,8 +393,12 @@ The on-disk organisation of the project is summarised below.
 │   ├── optimizer.py                      # prioritise + minimise (FR 7.0)
 │   ├── exporter.py                       # CSV / JSON / Excel writers
 │   ├── test_runner.py                    # in-UI pytest subprocess
+│   ├── report_pipeline.py                # orchestrates deliverable-doc generation
+│   ├── report_llm.py                     # LLM-first report writer (per-doc prompt)
+│   ├── report_generator.py               # deterministic report fallback (IEEE 829)
+│   ├── run_context.py                    # per-run outputs/run_<ts>/ directories
 │   └── utils.py                          # loaders, JSON helpers
-├── prompts/                              # LLM system prompts
+├── prompts/                              # LLM system prompts (pipeline + reports)
 ├── schema/                               # JSON schema files
 ├── data/
 │   ├── mini_ecommerce_requirements.json  # canonical dataset
@@ -382,7 +420,11 @@ The on-disk organisation of the project is summarised below.
 │   ├── build_traceability.py             # regenerates traceability_matrix.md
 │   └── run_offline_tests.py              # persists the offline run result
 ├── docs/                                 # this folder
-├── outputs/                              # timestamped run artefacts
+├── outputs/                              # per-run artefacts
+│   └── run_<timestamp>/
+│       ├── docs/                         # generated IEEE 829 deliverable reports
+│       ├── data/                         # exported CSV / JSON / Excel
+│       └── runs/                         # transient pytest payloads (gitignored)
 └── screenshots/                          # workflow screenshots
 ```
 

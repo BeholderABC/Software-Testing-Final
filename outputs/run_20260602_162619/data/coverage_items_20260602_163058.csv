@@ -1,0 +1,40 @@
+﻿coverage_item_id,requirement_id,target_module,coverage_item,coverage_type,coverage_strategy,priority
+CI-001,REQ-002,View product details,product_id is a legal value,positive,Equivalence Partitioning,Low
+CI-002,REQ-002,View product details,product_id is empty,boundary,Boundary Value Analysis,Low
+CI-003,REQ-003,Create new product, admin in enumeration,positive,Equivalence Partitioning,Medium
+CI-004,REQ-003,Create new product,contains input out of allowed enumeration,negative,Equivalence Partitioning,Medium
+CI-005,REQ-003,Create new product,name is a legal value,positive,Equivalence Partitioning,Medium
+CI-006,REQ-003,Create new product,name is empty,boundary,Boundary Value Analysis,Medium
+CI-007,REQ-003,Create new product,description is a legal value,positive,Equivalence Partitioning,Medium
+CI-008,REQ-003,Create new product,description is empty,boundary,Boundary Value Analysis,Medium
+CI-009,REQ-003,Create new product,price is a legal value,positive,Equivalence Partitioning,Medium
+CI-010,REQ-003,Create new product,price is empty,boundary,Boundary Value Analysis,Medium
+CI-011,REQ-003,Create new product,stock is a legal value,positive,Equivalence Partitioning,Medium
+CI-012,REQ-003,Create new product,stock is empty,boundary,Boundary Value Analysis,Medium
+CI-013,REQ-004,Update existing product, admin in enumeration,positive,Equivalence Partitioning,Medium
+CI-014,REQ-004,Update existing product,contains input out of allowed enumeration,negative,Equivalence Partitioning,Medium
+CI-015,REQ-004,Update existing product,product_id is a legal value,positive,Equivalence Partitioning,Medium
+CI-016,REQ-004,Update existing product,product_id is empty,boundary,Boundary Value Analysis,Medium
+CI-017,REQ-005,Delete product, admin in enumeration,positive,Equivalence Partitioning,Medium
+CI-018,REQ-005,Delete product,contains input out of allowed enumeration,negative,Equivalence Partitioning,Medium
+CI-019,REQ-005,Delete product,product_id is a legal value,positive,Equivalence Partitioning,Medium
+CI-020,REQ-005,Delete product,product_id is empty,boundary,Boundary Value Analysis,Medium
+CI-021,REQ-006,Create order,items = 0,boundary,Boundary Value Analysis,High
+CI-022,REQ-006,Create order,items = 1,boundary,Boundary Value Analysis,High
+CI-023,REQ-006,Create order,items = 2,boundary,Boundary Value Analysis,High
+CI-024,REQ-007,Validate order items,items = 0,boundary,Boundary Value Analysis,High
+CI-025,REQ-007,Validate order items,items = 1,boundary,Boundary Value Analysis,High
+CI-026,REQ-007,Validate order items,items = 2,boundary,Boundary Value Analysis,High
+CI-027,REQ-008,Validate customer information,customer_info is a legal value,positive,Equivalence Partitioning,High
+CI-028,REQ-008,Validate customer information,customer_info is empty,boundary,Boundary Value Analysis,High
+CI-029,REQ-009,Validate stock availability,requested_quantity less than available_stock,positive,Equivalence Partitioning,High
+CI-030,REQ-009,Validate stock availability,requested_quantity equals available_stock,boundary,Boundary Value Analysis,High
+CI-031,REQ-009,Validate stock availability,requested_quantity greater than available_stock,negative,Equivalence Partitioning,High
+CI-032,REQ-011,View order details,order_id is a legal value,positive,Equivalence Partitioning,Low
+CI-033,REQ-011,View order details,order_id is empty,boundary,Boundary Value Analysis,Low
+CI-034,REQ-012,Update order status, admin in enumeration,positive,Equivalence Partitioning,High
+CI-035,REQ-012,Update order status,contains input out of allowed enumeration,negative,Equivalence Partitioning,High
+CI-036,REQ-012,Update order status, pending in enumeration,positive,Equivalence Partitioning,High
+CI-037,REQ-012,Update order status, completed in enumeration,positive,Equivalence Partitioning,High
+CI-038,REQ-012,Update order status, cancelled in enumeration,positive,Equivalence Partitioning,High
+CI-039,REQ-012,Update order status,contains input out of allowed enumeration,negative,Equivalence Partitioning,High

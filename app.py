@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -51,6 +52,9 @@ from core import (
     optimizer,
     oracle as oracle_mod,
     pipeline_fallback,
+    report_generator,
+    report_pipeline,
+    run_context,
     state_model as state_model_mod,
     test_runner,
     testcase_generator,
@@ -93,6 +97,26 @@ REQ-012: The system shall allow admin users to update order status to pending, c
 def _has_llm_key() -> bool:
     """LLM is only attempted when an API key is configured."""
     return bool(os.getenv("API_KEY"))
+
+
+# Stable display/aggregation order for the design-phase pipeline stages.
+_TIMING_ORDER = ["parse", "risk", "coverage", "testcases", "optimize"]
+
+
+def _record_timing(stage: str, engine: str, seconds: float) -> None:
+    """Record the wall-clock duration of one design step. Keyed by stage
+    so re-running a step overwrites rather than accumulates."""
+    st.session_state.setdefault("timings", {})[stage] = {
+        "stage": stage, "engine": engine, "seconds": round(seconds, 4)}
+
+
+def _ordered_timings() -> List[Dict[str, Any]]:
+    """The recorded timings in pipeline order, for the cost section."""
+    timings = st.session_state.get("timings", {})
+    ordered = [timings[s] for s in _TIMING_ORDER if s in timings]
+    # Append any stages not in the canonical order (future-proofing).
+    ordered += [v for k, v in timings.items() if k not in _TIMING_ORDER]
+    return ordered
 
 
 def _llm_parse_requirements(raw_text: str
@@ -291,13 +315,93 @@ def export_results(requirements_df: pd.DataFrame,
                    risk_df: pd.DataFrame,
                    coverage_df: pd.DataFrame,
                    test_cases_df: pd.DataFrame) -> Dict[str, str]:
-    """Delegate to [core/exporter.py](core/exporter.py)."""
+    """Delegate to [core/exporter.py](core/exporter.py).
+
+    Data artefacts are written into the current run's ``data/``
+    sub-directory so every output of a session lives under one
+    ``outputs/run_<ts>/`` tree (see [core/run_context.py](core/run_context.py)).
+    """
+    dirs = run_context.ensure_run_dirs(st.session_state.run_id)
     return exporter.export_all(
         requirements=requirements_df,
         risk=risk_df,
         coverage=coverage_df,
         test_cases=test_cases_df,
-        output_dir=OUTPUT_DIR,
+        output_dir=dirs["data"],
+    )
+
+
+def _engine_source_label() -> str:
+    """Human-readable description of which design engine produced the run."""
+    parts = []
+    if st.session_state.get("requirements_source"):
+        parts.append(f"parser={st.session_state['requirements_source']}")
+    if st.session_state.get("risk_source"):
+        parts.append(f"risk={st.session_state['risk_source']}")
+    return ", ".join(parts) or "rule pipeline"
+
+
+def _canonical_run(runs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """Pick the run whose results anchor the detailed report's per-case
+    table and §4 design set: prefer the optimised + deduplicated run (the
+    suite the team ships), then fall back to the most recent run."""
+    for key in ("Optimised|dedup", "Optimised|full", "Generated|dedup"):
+        if key in runs:
+            return runs[key]
+    last = st.session_state.get("last_run_key")
+    if last in runs:
+        return runs[last]
+    return next(iter(runs.values())) if runs else {}
+
+
+def generate_run_reports() -> Dict[str, Any]:
+    """Render the three Markdown deliverables into the run's ``docs/``
+    directory from the artefacts the session currently holds.
+
+    Delegates to the orchestrator in
+    [core/report_pipeline.py](core/report_pipeline.py): each document is
+    written by the LLM when configured, else by the deterministic rule
+    generator, and the measured generation time + token usage are injected
+    into the cost section. Every recorded Step 8 run mode feeds the
+    detailed report's per-mode comparison table; the canonical run (see
+    :func:`_canonical_run`) supplies the per-case result detail and the
+    design set shown in the report tables, keeping the design and result
+    sections on the same source.
+
+    Returns the orchestrator's result dict: ``{"paths", "metrics",
+    "engine_by_doc"}``.
+    """
+    dirs = run_context.ensure_run_dirs(st.session_state.run_id)
+    meta = {
+        "run_id": st.session_state.run_id,
+        "target_app": report_generator.DEFAULT_TARGET_APP,
+        "engine_source": _engine_source_label(),
+    }
+
+    runs = st.session_state.get("runs_by_mode") or {}
+    canonical = _canonical_run(runs)
+    # Design tables follow the canonical run's source set when a run
+    # exists, else the optimised (or generated) design set.
+    if canonical.get("cases") is not None:
+        design_cases: Any = canonical["cases"]
+    elif st.session_state.get("optimized_df") is not None:
+        design_cases = st.session_state.get("optimized_df")
+    else:
+        design_cases = st.session_state.get("test_cases_df")
+
+    return report_pipeline.generate_reports(
+        requirements=st.session_state.get("requirements_df"),
+        risk=st.session_state.get("risk_df"),
+        coverage=st.session_state.get("coverage_df"),
+        test_cases=design_cases,
+        docs_dir=dirs["docs"],
+        test_summary=st.session_state.get("test_cases_summary"),
+        optimization_summary=st.session_state.get("optimization_summary"),
+        run_summary=canonical.get("summary"),
+        runs=list(runs.values()),
+        pipeline_timings=_ordered_timings(),
+        meta=meta,
+        prefer_llm=_has_llm_key(),
     )
 
 
@@ -319,6 +423,12 @@ def _invalidate_downstream(*keys: str) -> None:
     """Drop cached downstream artefacts so they are regenerated on demand."""
     for k in keys:
         st.session_state.pop(k, None)
+    # The per-mode run records are coupled to the test-run summary: any
+    # relock that clears the summary must also clear the recorded modes,
+    # so an upstream edit never leaves a stale run table behind.
+    if "test_run_summary" in keys:
+        st.session_state.pop("runs_by_mode", None)
+        st.session_state.pop("last_run_key", None)
 
 
 # --- Step registry ---------------------------------------------------------
@@ -344,6 +454,13 @@ def _init_state() -> None:
         "stage": 0,                       # highest unlocked step index
         "current": 0,                     # step the user is viewing
         "raw_requirements": SAMPLE_REQUIREMENTS,
+        # One run id per session, fixed when the landing page is first
+        # reached. All exports and generated docs of this session live
+        # under outputs/run_<ts>/ (see core/run_context.py).
+        "run_id": run_context.new_run_id(),
+        # stage -> {stage, engine, seconds}: wall-clock timing of each
+        # design step, fed into the cost estimation of the reports.
+        "timings": {},
     }
     for k, v in defaults.items():
         st.session_state.setdefault(k, v)
@@ -585,8 +702,10 @@ def step_parse(idx: int) -> None:
                       "test_run_summary")
         with st.status("Parsing requirements…", expanded=True) as status:
             st.write("Sending requirement text to the parser.")
+            _t0 = time.perf_counter()
             df, parsed, source = parse_with_fallback(
                 st.session_state.raw_requirements)
+            _record_timing("parse", source, time.perf_counter() - _t0)
             st.session_state.requirements_df = df
             st.session_state.parsed_struct = parsed
             st.session_state.requirements_source = source
@@ -633,8 +752,10 @@ def step_risk(idx: int) -> None:
     if st.button("Generate risk analysis", type="primary"):
         with st.status("Analysing risk…", expanded=True) as status:
             st.write("Scoring requirements.")
+            _t0 = time.perf_counter()
             df, source = analyse_risk_with_fallback(
                 st.session_state.requirements_df)
+            _record_timing("risk", source, time.perf_counter() - _t0)
             st.session_state.risk_df = df
             st.session_state.risk_source = source
             _relock_after(idx, "coverage_df", "test_cases_df",
@@ -680,8 +801,10 @@ def step_coverage(idx: int) -> None:
 
     if st.button("Generate coverage items", type="primary"):
         with st.status("Generating coverage items…") as status:
+            _t0 = time.perf_counter()
             st.session_state.coverage_df = generate_coverage(
                 st.session_state.parsed_struct, st.session_state.risk_df)
+            _record_timing("coverage", "rule", time.perf_counter() - _t0)
             _relock_after(idx, "test_cases_df", "test_cases_summary",
                           "optimized_df", "optimization_summary",
                           "test_run_summary")
@@ -728,10 +851,12 @@ def step_cases(idx: int) -> None:
 
     if st.button("Generate test cases", type="primary"):
         with st.status("Generating test cases…") as status:
+            _t0 = time.perf_counter()
             df, summary = generate_test_cases(
                 st.session_state.requirements_df,
                 st.session_state.risk_df,
                 st.session_state.coverage_df)
+            _record_timing("testcases", "rule", time.perf_counter() - _t0)
             st.session_state.test_cases_df = df
             st.session_state.test_cases_summary = summary
             _relock_after(idx, "optimized_df", "optimization_summary",
@@ -890,21 +1015,25 @@ def step_optimize(idx: int) -> None:
     cols = st.columns(2)
     if cols[0].button("Prioritise"):
         with st.status("Prioritising…") as status:
+            _t0 = time.perf_counter()
             df, summary = optimise_test_cases(
                 st.session_state.test_cases_df, st.session_state.risk_df,
                 minimize=False)
+            _record_timing("optimize", "rule", time.perf_counter() - _t0)
             st.session_state.optimized_df = df
             st.session_state.optimization_summary = summary
-            st.session_state.pop("test_run_summary", None)
+            _invalidate_downstream("test_run_summary")
             status.update(label="Prioritised.", state="complete")
     if cols[1].button("Minimise (risk-based) — Recommended", type="primary"):
         with st.status("Minimising…") as status:
+            _t0 = time.perf_counter()
             df, summary = optimise_test_cases(
                 st.session_state.test_cases_df, st.session_state.risk_df,
                 minimize=True)
+            _record_timing("optimize", "rule", time.perf_counter() - _t0)
             st.session_state.optimized_df = df
             st.session_state.optimization_summary = summary
-            st.session_state.pop("test_run_summary", None)
+            _invalidate_downstream("test_run_summary")
             status.update(label="Minimised.", state="complete")
 
     summary = st.session_state.get("optimization_summary")
@@ -965,16 +1094,25 @@ def step_optimize(idx: int) -> None:
 
 def step_export(idx: int) -> None:
     _step_header(idx)
-    st.write("Export the suite to CSV, JSON and a multi-sheet Excel workbook.")
+    st.write(
+        "Export the designed suite to CSV, JSON and a multi-sheet Excel "
+        "workbook. These are the design-layer artefacts; the three Markdown "
+        "deliverables embed execution results and are generated at Step 8 "
+        "after the suite has been run.")
+    st.caption(
+        f"This session writes everything under "
+        f"`{run_context.run_dir(st.session_state.run_id)}/` — data artefacts "
+        "in `data/`, deliverable documents in `docs/` (generated at Step 8).")
 
     use_opt = False
     if st.session_state.get("optimized_df") is not None:
         use_opt = st.checkbox("Export the optimised set", value=True)
 
-    if st.button("Export CSV / JSON / Excel", type="primary"):
-        with st.status("Writing artefacts…") as status:
+    if st.button("Export data artefacts", type="primary"):
+        with st.status("Writing artefacts…", expanded=True) as status:
             cases = (st.session_state.optimized_df if use_opt
                      else st.session_state.test_cases_df)
+            st.write("Writing CSV / JSON / Excel into data/.")
             paths = export_results(
                 st.session_state.requirements_df, st.session_state.risk_df,
                 st.session_state.coverage_df, cases)
@@ -982,9 +1120,14 @@ def step_export(idx: int) -> None:
             status.update(label="Export complete.", state="complete")
 
     if "export_paths" in st.session_state:
-        st.success("Artefacts written to outputs/.")
+        st.success(
+            f"Data artefacts written to "
+            f"`{run_context.data_dir(st.session_state.run_id)}/`.")
         for name, path in st.session_state.export_paths.items():
             st.write(f"- **{name}**: `{path}`")
+        st.info(
+            "Next: run the suite at Step 8, then generate the deliverable "
+            "documents there.")
         _nav_footer(idx, can_advance=True)
     else:
         _nav_footer(idx, can_advance=False)
@@ -1044,10 +1187,18 @@ def _load_baseline(kind: str) -> List[Dict[str, Any]]:
 def _render_run_panel(cases: List[Dict[str, Any]],
                       *, run_button_key: str,
                       summary_session_key: str = "test_run_summary",
-                      mode_key_prefix: str = "run") -> None:
+                      mode_key_prefix: str = "run",
+                      record_source: str = None) -> None:
     """Shared run-panel: backend probe, executable caption, run button,
     and the post-run summary + per-case table. Reused by Step 0 (baseline
-    view) and Step 8 (current-session view)."""
+    view) and Step 8 (current-session view).
+
+    When ``record_source`` is given (Step 8 only), each completed run is
+    filed in ``st.session_state.runs_by_mode`` under its
+    ``(source, http_mode)`` key so the report generator can build the
+    multi-mode comparison table. Step 0 baseline runs pass ``None`` and
+    are not recorded — they are a demo against persisted data, not part
+    of the current session's deliverables."""
     probe = _cached_probe(st.session_state.backend_url)
     if not probe["alive"]:
         st.warning(
@@ -1096,8 +1247,23 @@ def _render_run_panel(cases: List[Dict[str, Any]],
             st.write("Spawning pytest subprocess.")
             summary = test_runner.run_data_driven_tests(
                 test_cases=cases, backend_url=st.session_state.backend_url,
-                full_http_exec=full_http_exec)
+                full_http_exec=full_http_exec,
+                output_dir=run_context.runs_dir(st.session_state.run_id))
             st.session_state[summary_session_key] = summary
+            if record_source is not None:
+                http_mode = "full" if full_http_exec else "dedup"
+                runs = st.session_state.setdefault("runs_by_mode", {})
+                key = f"{record_source}|{http_mode}"
+                runs[key] = {
+                    "source": record_source,
+                    "http_mode": http_mode,
+                    "generated_count": len(cases),
+                    "executed_count": (len(cases) if full_http_exec
+                                       else _count_executable(cases)),
+                    "cases": cases,
+                    "summary": summary,
+                }
+                st.session_state.last_run_key = key
             status.update(
                 label=f"Done — {summary.passed} passed, {summary.failed} "
                 f"failed, {summary.skipped} skipped.",
@@ -1155,9 +1321,63 @@ def step_run(idx: int) -> None:
                 "from Step 1, or use Step 0 (Welcome) to execute the "
                 "persisted baseline.")
 
+    source_label = ("Optimised" if source.startswith("Optimised")
+                    else "Generated")
     _render_run_panel(cases, run_button_key="_run_session",
                       summary_session_key="test_run_summary",
-                      mode_key_prefix="run")
+                      mode_key_prefix="run", record_source=source_label)
+
+    # Deliverable generation lives here, after execution, because the
+    # detailed report's result analysis (and the test plan's execution
+    # checklist) need run results. The button is gated on at least one
+    # recorded run so the documents are only produced once the data they
+    # embed actually exists.
+    st.divider()
+    st.subheader("Generate deliverable documents")
+    runs = st.session_state.get("runs_by_mode") or {}
+    engine = "LLM (with rule fallback)" if _has_llm_key() else "rule engine"
+    if runs:
+        modes = ", ".join(
+            f"{r['source']}/{r['http_mode']}" for r in runs.values())
+        st.caption(
+            f"Run modes recorded this session: **{modes}**. Documents are "
+            f"written by the **{engine}** into "
+            f"`{run_context.docs_dir(st.session_state.run_id)}` following "
+            "IEEE 829, with a per-mode comparison table in the detailed "
+            "report and tool-measured generation time + token cost injected "
+            "into the test plan.")
+    else:
+        st.caption(
+            "Run the suite at least once above (in any source / HTTP mode) "
+            "to unlock document generation — the reports embed the "
+            "execution results.")
+
+    if st.button("📄 Generate deliverable documents", type="primary",
+                 disabled=not runs,
+                 help=None if runs else "Run the suite at least once first."):
+        with st.status("Generating documents…", expanded=True) as status:
+            st.write(f"Generating via the {engine}.")
+            st.session_state.report_result = generate_run_reports()
+            status.update(label="Documents written to docs/.",
+                          state="complete")
+
+    result = st.session_state.get("report_result")
+    if result:
+        st.success("Deliverable documents generated.")
+        for kind, path in result["paths"].items():
+            eng = result["engine_by_doc"].get(kind, "?")
+            m = result["metrics"].get(kind, {})
+            detail = (f"{eng}, {m.get('seconds', 0):.2f}s"
+                      + (f", {m.get('total_tokens', 0)} tok"
+                         if m.get("total_tokens") else ""))
+            st.write(f"- **{kind}** ({detail}): `{path}`")
+        if any(m.get("total_tokens") for m in result["metrics"].values()):
+            tot = sum(m.get("total_tokens", 0)
+                      for m in result["metrics"].values())
+            st.caption(
+                f"Total generation tokens: {tot}. Per-document timing and "
+                "token cost are embedded in the test plan's cost section.")
+
     _nav_footer(idx, can_advance=False)
 
 
